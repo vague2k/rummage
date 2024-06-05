@@ -7,7 +7,11 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
+	"time"
+
+	"github.com/vague2k/rummage/pkg/utils"
 )
 
 type RummageDB struct {
@@ -19,11 +23,16 @@ type RummageDB struct {
 //
 // Access() also makes sure the directory exists, but does not write anything to it's children.
 func Access() (*RummageDB, error) {
-	dir := "/Users/albert/.local/share/rummage"
-
-	err := os.MkdirAll(dir, 0777)
+	dataDir, err := utils.DataDir()
 	if err != nil {
-		msg := fmt.Sprint("Could not create db dir: \n", err)
+		return nil, fmt.Errorf("%s", err)
+	}
+
+	dir := filepath.Join(dataDir, "rummage")
+
+	err = os.MkdirAll(dir, 0777)
+	if err != nil {
+		msg := fmt.Sprintf("Could not create db dir: \n%s", err)
 		return nil, errors.New(msg)
 	}
 
@@ -39,12 +48,13 @@ func Access() (*RummageDB, error) {
 // If the db.FilePath does not exist, it will be created.
 //
 // If the item's entry already exists, AddItem() does nothing.
-func (db *RummageDB) AddItem(entry string, score int) error {
-	if db.EntryExists(entry) {
+func (db *RummageDB) AddItem(entry string) error {
+	if exists, _ := db.EntryExists(entry); exists {
 		return nil
 	}
+	now := time.Now().Unix()
 	// item uses a double null byte to distinguish between the entry and it's score,
-	item := entry + "\x00\x00" + fmt.Sprintf("%d", score) + "\n"
+	item := fmt.Sprintf("%s\x00\x00%d\x00\x00%d\n", entry, 1, now)
 	itemBytes := []byte(item)
 
 	file, err := os.OpenFile(db.FilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
@@ -63,11 +73,13 @@ func (db *RummageDB) AddItem(entry string, score int) error {
 	return nil
 }
 
-// Checks if a specific db.Item.Entry exists in the db.
-// If the entry does not exist, returns false.
+// Checks if a specific db.Item exists in the db.
+//
+// If the item does exist, returns true and a pointer to a RummageDBItem.
+// If the item does not exist, returns false and nil.
 //
 // If the db cannot be read, an error will be propagated.
-func (db *RummageDB) EntryExists(entry string) bool {
+func (db *RummageDB) EntryExists(entry string) (bool, *RummageDBItem) {
 	file, err := os.Open(db.FilePath)
 	if err != nil {
 		log.Fatalf("Could not open file path %s for reading: \n%s", db.FilePath, err)
@@ -75,13 +87,24 @@ func (db *RummageDB) EntryExists(entry string) bool {
 	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
+	now := time.Now().Unix()
+
 	for scanner.Scan() {
 		text := scanner.Text()
 		entryFromDB := strings.Split(text, "\x00\x00")
-		if entry == entryFromDB[0] {
-			return true
+		if entry == entryFromDB[0] && fmt.Sprintf("%d", now) != entryFromDB[2] {
+
+			last_accessed, _ := strconv.ParseInt(entryFromDB[2], 10, 64)
+			score, _ := strconv.ParseInt(entryFromDB[1], 10, 0)
+
+			item := &RummageDBItem{
+				Entry:        entryFromDB[0],
+				Score:        score,
+				LastAccessed: time.Unix(last_accessed, 0),
+			}
+			return true, item
 		}
 	}
 
-	return false
+	return false, nil
 }

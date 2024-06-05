@@ -12,7 +12,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	err = db.AddItem("someothercontent", 2)
+	err = db.AddItem("someothercontent")
 	if err != nil {
 		panic(err)
 	}
