@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"time"
 )
 
 // Returns the array of args excluding the command name.
@@ -39,4 +40,11 @@ func DataDir() (string, error) {
 	}
 
 	return dataDir, nil
+}
+
+// Wrapper for time.Now().Unix(), just in case the specific unix time (currently returns ms), needs to be changed on the fly.
+//
+// this util func may or may not stay here / be used in prod.
+func Epoch() int64 {
+	return time.Now().Unix()
 }

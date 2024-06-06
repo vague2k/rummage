@@ -22,4 +22,7 @@ func main() {
 		panic(err)
 	}
 	fmt.Print(string(b))
+
+	// _, item := db.EntryExists("someothercontent")
+	// fmt.Println(item.UpdateScore().Score)
 }

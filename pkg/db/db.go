@@ -9,14 +9,13 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/vague2k/rummage/pkg/utils"
 )
 
 type RummageDB struct {
-	Dir      string
-	FilePath string
+	Dir      string // The db's parent directory
+	FilePath string // The db.rum file path
 }
 
 // Accesses the rummage db, returning a pointer to the db instance.
@@ -29,6 +28,7 @@ func Access() (*RummageDB, error) {
 	}
 
 	dir := filepath.Join(dataDir, "rummage")
+	dbFile := filepath.Join(dir, "db.rum")
 
 	err = os.MkdirAll(dir, 0777)
 	if err != nil {
@@ -38,7 +38,7 @@ func Access() (*RummageDB, error) {
 
 	instance := &RummageDB{
 		Dir:      dir,
-		FilePath: filepath.Join(dir, "db.rum"),
+		FilePath: dbFile,
 	}
 
 	return instance, nil
@@ -52,10 +52,7 @@ func (db *RummageDB) AddItem(entry string) error {
 	if exists, _ := db.EntryExists(entry); exists {
 		return nil
 	}
-	now := time.Now().Unix()
-	// item uses a double null byte to distinguish between the entry and it's score,
-	item := fmt.Sprintf("%s\x00\x00%d\x00\x00%d\n", entry, 1, now)
-	itemBytes := []byte(item)
+	item := createDBItem(entry, 0.50)
 
 	file, err := os.OpenFile(db.FilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
 	if err != nil {
@@ -64,7 +61,7 @@ func (db *RummageDB) AddItem(entry string) error {
 	}
 	defer file.Close()
 
-	_, err = file.Write(itemBytes)
+	_, err = file.Write(item)
 	if err != nil {
 		msg := fmt.Sprintf("Issue occured when writing item to file path %s: \n%s", db.FilePath, err)
 		return errors.New(msg)
@@ -87,7 +84,7 @@ func (db *RummageDB) EntryExists(entry string) (bool, *RummageDBItem) {
 	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
-	now := time.Now().Unix()
+	now := utils.Epoch()
 
 	for scanner.Scan() {
 		text := scanner.Text()
@@ -95,16 +92,23 @@ func (db *RummageDB) EntryExists(entry string) (bool, *RummageDBItem) {
 		if entry == entryFromDB[0] && fmt.Sprintf("%d", now) != entryFromDB[2] {
 
 			last_accessed, _ := strconv.ParseInt(entryFromDB[2], 10, 64)
-			score, _ := strconv.ParseInt(entryFromDB[1], 10, 0)
+			score, _ := strconv.ParseFloat(entryFromDB[1], 0)
 
 			item := &RummageDBItem{
 				Entry:        entryFromDB[0],
 				Score:        score,
-				LastAccessed: time.Unix(last_accessed, 0),
+				LastAccessed: last_accessed,
 			}
 			return true, item
 		}
 	}
 
 	return false, nil
+}
+
+func createDBItem(entry string, defaultScore float64) []byte {
+	createdNow := utils.Epoch()
+	item := fmt.Sprintf("%s\x00\x00%f\x00\x00%d\n", entry, defaultScore, createdNow)
+	b := []byte(item)
+	return b
 }
