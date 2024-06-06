@@ -2,8 +2,6 @@ package db
 
 import (
 	"fmt"
-	"math"
-	"time"
 )
 
 type RummageDBItem struct {
