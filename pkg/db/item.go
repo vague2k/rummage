@@ -33,6 +33,9 @@ func (i *RummageDBItem) ScoreAsString() string {
 	return s
 }
 
+// Recalculates an item's score based on the last time it was last accessed.
+//
+// TODO: needs testing
 func (i *RummageDBItem) RecalculateScore() *RummageDBItem {
 	var score float64
 
