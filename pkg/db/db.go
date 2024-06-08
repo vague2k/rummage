@@ -10,8 +10,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/vague2k/rummage/pkg/utils"
 )
 
 type RummageDB struct {
@@ -23,7 +21,7 @@ type RummageDB struct {
 //
 // Access() also makes sure the directory exists, but does not write anything to it's children.
 func Access() (*RummageDB, error) {
-	dataDir, err := utils.DataDir()
+	dataDir, err := dataDir()
 	if err != nil {
 		return nil, fmt.Errorf("%s", err)
 	}
@@ -152,16 +150,4 @@ func (db *RummageDB) UpdateItem(entry string, updated *RummageDBItem) (*RummageD
 	}
 
 	return updatedItem, nil
-}
-
-func createDBItem(entry string, defaultScore float64, newline bool) []byte {
-	var item string
-	createdNow := time.Now().Unix()
-	if newline {
-		item = fmt.Sprintf("%s\x00\x00%f\x00\x00%d\n", entry, defaultScore, createdNow)
-	} else {
-		item = fmt.Sprintf("%s\x00\x00%f\x00\x00%d", entry, defaultScore, createdNow)
-	}
-	b := []byte(item)
-	return b
 }
