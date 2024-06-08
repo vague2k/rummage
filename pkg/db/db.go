@@ -15,6 +15,7 @@ import (
 type RummageDB struct {
 	Dir      string // The db's parent directory
 	FilePath string // The db.rum file path
+	Items    []RummageDBItem
 }
 
 // Accesses the rummage db, returning a pointer to the db instance.
@@ -59,7 +60,7 @@ func (db *RummageDB) AddItem(entry string) (*RummageDBItem, error) {
 	}
 	defer file.Close()
 
-	if exists, item := db.EntryExists(entry); exists {
+	if item, exists := db.SelectItem(entry); exists {
 		return item, nil
 	}
 
@@ -79,13 +80,13 @@ func (db *RummageDB) AddItem(entry string) (*RummageDBItem, error) {
 	}, nil
 }
 
-// Checks if a specific db.Item exists in the db.
+// Selects a specific db.Item, and returns a pointer to it.
 //
-// If the item does exist, returns true and a pointer to a RummageDBItem.
-// If the item does not exist, returns false and nil.
+// If the item does exist, returns *RummageDBItem, true.
+// If the item does not exist, returns nil, false
 //
 // If the db cannot be read, an error will be propagated.
-func (db *RummageDB) EntryExists(entry string) (bool, *RummageDBItem) {
+func (db *RummageDB) SelectItem(entry string) (*RummageDBItem, bool) {
 	file, err := os.Open(db.FilePath)
 	if err != nil {
 		log.Fatalf("Could not open file path %s for reading: \n%s", db.FilePath, err)
@@ -107,11 +108,11 @@ func (db *RummageDB) EntryExists(entry string) (bool, *RummageDBItem) {
 				Score:        score,
 				LastAccessed: last_accessed,
 			}
-			return true, item
+			return item, true
 		}
 	}
 
-	return false, nil
+	return nil, false
 }
 
 // Updates an item in the db if the entry can be found. An entry not being found is treated as an error.
@@ -124,7 +125,7 @@ func (db *RummageDB) UpdateItem(entry string, updated *RummageDBItem) (*RummageD
 		return nil, errors.New(msg)
 	}
 
-	if exists, _ := db.EntryExists(entry); !exists {
+	if _, exists := db.SelectItem(entry); !exists {
 		msg := fmt.Sprintf("The entry, %s could not be found", entry)
 		return nil, errors.New(msg)
 	}
@@ -150,4 +151,34 @@ func (db *RummageDB) UpdateItem(entry string, updated *RummageDBItem) (*RummageD
 	}
 
 	return updatedItem, nil
+}
+
+// List of items in the db return as *[]RummageDBItem
+func (db *RummageDB) ListItems() *[]RummageDBItem {
+	file, err := os.Open(db.FilePath)
+	if err != nil {
+		log.Fatalf("Could not open file path %s for reading: \n%s", db.FilePath, err)
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	var items []RummageDBItem
+
+	for scanner.Scan() {
+		splitItem := strings.Split(scanner.Text(), "\x00\x00")
+
+		entry := splitItem[0]
+		score, _ := strconv.ParseFloat(splitItem[1], 64)
+		lastAccessed, _ := strconv.ParseInt(splitItem[2], 10, 0)
+
+		item := RummageDBItem{
+			Entry:        entry,
+			Score:        score,
+			LastAccessed: lastAccessed,
+		}
+
+		items = append(items, item)
+	}
+
+	return &items
 }
