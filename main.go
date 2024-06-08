@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/vague2k/rummage/pkg/db"
 )
@@ -12,17 +11,21 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	err = db.AddItem("someothercontent")
+	item, err := db.AddItem("someothercontent")
 	if err != nil {
 		panic(err)
 	}
 
-	b, err := os.ReadFile(db.FilePath)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Print(string(b))
+	item = item.RecalculateScore()
 
-	// _, item := db.EntryExists("someothercontent")
-	// fmt.Println(item.UpdateScore().Score)
+	item, err = db.UpdateItem(item.Entry, item)
+	// b, err := os.ReadFile(db.FilePath)
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// fmt.Print(string(b))
+
+	fmt.Println("UPDATED ENTRY: ", item.Entry)
+	fmt.Println("UPDATED SCORE: ", item.Score)
+	fmt.Println("UPDATED EPOCH:", item.LastAccessed)
 }

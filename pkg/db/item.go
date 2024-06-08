@@ -2,11 +2,11 @@ package db
 
 import (
 	"fmt"
+	"time"
 )
 
 type RummageDBItem struct {
 	Entry string
-	// The "recency" score calculated and given to the item.
 	Score float64
 	// An int64 integer that represents the last time this value was accessed.
 	// An "access" is considered anytime this value was last updated or the first time it was added.
@@ -14,6 +14,12 @@ type RummageDBItem struct {
 	// This time is in seconds, using the Unix epoch.
 	LastAccessed int64
 }
+
+const (
+	HOUR = 3600
+	DAY  = HOUR * 24
+	WEEK = DAY * 7
+)
 
 // Returns the LastAccessed field as a string
 func (i *RummageDBItem) LastAccessedAsString() string {
@@ -27,12 +33,25 @@ func (i *RummageDBItem) ScoreAsString() string {
 	return s
 }
 
-func (i *RummageDBItem) UpdateScore() *RummageDBItem {
-	// TODO:
-	// The score should meet these criteria
-	// - be based on how long it's been since the user last accessed the db item,
-	// - the score should be a float64 ranging between 0.01 (lowest match for search) - 0.99 (highest match for search)
-	// - the longer it's been since last accessed, the lower the score should be (vice versa for recenctly accessed)
+func (i *RummageDBItem) RecalculateScore() *RummageDBItem {
+	var score float64
 
-	return nil
+	duration := time.Now().Sub(time.Unix(i.LastAccessed, 0))
+	fmt.Println(duration.Seconds())
+
+	if duration > HOUR {
+		score = i.Score * 4.0
+	} else if duration > DAY {
+		score = i.Score * 2.0
+	} else if duration > WEEK {
+		score = i.Score * 0.5
+	} else {
+		score = i.Score * 0.25
+	}
+
+	return &RummageDBItem{
+		Entry:        i.Entry,
+		Score:        score,
+		LastAccessed: time.Now().Unix(),
+	}
 }

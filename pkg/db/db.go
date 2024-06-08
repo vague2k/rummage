@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/vague2k/rummage/pkg/utils"
 )
@@ -44,30 +45,40 @@ func Access() (*RummageDB, error) {
 	return instance, nil
 }
 
-// Adds an item to the db.
+// Adds an item to the db and returns a pointer to the item that was just added.
+// Newly added items are given a default score of 1.0.
+//
 // If the db.FilePath does not exist, it will be created.
 //
-// If the item's entry already exists, AddItem() does nothing.
-func (db *RummageDB) AddItem(entry string) error {
-	if exists, _ := db.EntryExists(entry); exists {
-		return nil
-	}
-	item := createDBItem(entry, 0.50)
-
+// If the item's entry already exists, AddItem() returns the item
+func (db *RummageDB) AddItem(entry string) (*RummageDBItem, error) {
+	// make sure the file exists first before checking if the entry exists,
+	// to make sure "db.rum" is created if that file does not exist
 	file, err := os.OpenFile(db.FilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
 	if err != nil {
 		msg := fmt.Sprintf("Could not open file path %s for writing: \n%s", db.FilePath, err)
-		return errors.New(msg)
+		return nil, errors.New(msg)
 	}
 	defer file.Close()
+
+	if exists, item := db.EntryExists(entry); exists {
+		return item, nil
+	}
+
+	defaultScore := 1.0
+	item := createDBItem(entry, defaultScore, true)
 
 	_, err = file.Write(item)
 	if err != nil {
 		msg := fmt.Sprintf("Issue occured when writing item to file path %s: \n%s", db.FilePath, err)
-		return errors.New(msg)
+		return nil, errors.New(msg)
 	}
 
-	return nil
+	return &RummageDBItem{
+		Entry:        entry,
+		Score:        defaultScore,
+		LastAccessed: time.Now().Unix(),
+	}, nil
 }
 
 // Checks if a specific db.Item exists in the db.
@@ -84,12 +95,11 @@ func (db *RummageDB) EntryExists(entry string) (bool, *RummageDBItem) {
 	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
-	now := utils.Epoch()
 
 	for scanner.Scan() {
 		text := scanner.Text()
 		entryFromDB := strings.Split(text, "\x00\x00")
-		if entry == entryFromDB[0] && fmt.Sprintf("%d", now) != entryFromDB[2] {
+		if entry == entryFromDB[0] {
 
 			last_accessed, _ := strconv.ParseInt(entryFromDB[2], 10, 64)
 			score, _ := strconv.ParseFloat(entryFromDB[1], 0)
@@ -106,9 +116,52 @@ func (db *RummageDB) EntryExists(entry string) (bool, *RummageDBItem) {
 	return false, nil
 }
 
-func createDBItem(entry string, defaultScore float64) []byte {
-	createdNow := utils.Epoch()
-	item := fmt.Sprintf("%s\x00\x00%f\x00\x00%d\n", entry, defaultScore, createdNow)
+// Updates an item in the db if the entry can be found. An entry not being found is treated as an error.
+//
+// If the db file can't be read, written to, or if the entry can't be found, an error will also be returned.
+func (db *RummageDB) UpdateItem(entry string, updated *RummageDBItem) (*RummageDBItem, error) {
+	contents, err := os.ReadFile(db.FilePath)
+	if err != nil {
+		msg := fmt.Sprintf("Could not open file path %s for reading: \n%s", db.FilePath, err)
+		return nil, errors.New(msg)
+	}
+
+	if exists, _ := db.EntryExists(entry); !exists {
+		msg := fmt.Sprintf("The entry, %s could not be found", entry)
+		return nil, errors.New(msg)
+	}
+
+	lines := strings.Split(string(contents), "\n")
+	for i, line := range lines {
+		item := strings.Split(line, "\x00\x00")
+		if item[0] == entry {
+			lines[i] = string(createDBItem(updated.Entry, updated.Score, false))
+		}
+	}
+
+	output := strings.Join(lines, "\n")
+	err = os.WriteFile(db.FilePath, []byte(output), 0644)
+	if err != nil {
+		log.Fatalf("Could not open update (write) item at path %s: \n%s", db.FilePath, err)
+	}
+
+	updatedItem := &RummageDBItem{
+		Entry:        updated.Entry,
+		Score:        updated.Score,
+		LastAccessed: time.Now().Unix(),
+	}
+
+	return updatedItem, nil
+}
+
+func createDBItem(entry string, defaultScore float64, newline bool) []byte {
+	var item string
+	createdNow := time.Now().Unix()
+	if newline {
+		item = fmt.Sprintf("%s\x00\x00%f\x00\x00%d\n", entry, defaultScore, createdNow)
+	} else {
+		item = fmt.Sprintf("%s\x00\x00%f\x00\x00%d", entry, defaultScore, createdNow)
+	}
 	b := []byte(item)
 	return b
 }
