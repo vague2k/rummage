@@ -21,16 +21,19 @@ type RummageDB struct {
 // Accesses the rummage db, returning a pointer to the db instance.
 //
 // Access() also makes sure the directory exists, but does not write anything to it's children.
-func Access() (*RummageDB, error) {
-	dataDir, err := dataDir()
-	if err != nil {
-		return nil, fmt.Errorf("%s", err)
+func Access(path string) (*RummageDB, error) {
+	if path == "" {
+		dataDir, err := dataDir()
+		if err != nil {
+			return nil, fmt.Errorf("%s", err)
+		}
+		path = dataDir
 	}
 
-	dir := filepath.Join(dataDir, "rummage")
+	dir := filepath.Join(path, "rummage")
 	dbFile := filepath.Join(dir, "db.rum")
 
-	err = os.MkdirAll(dir, 0777)
+	err := os.MkdirAll(dir, 0777)
 	if err != nil {
 		msg := fmt.Sprintf("Could not create db dir: \n%s", err)
 		return nil, errors.New(msg)
@@ -152,8 +155,8 @@ func (db *RummageDB) UpdateItem(entry string, updated *RummageDBItem) (*RummageD
 	return updatedItem, nil
 }
 
-// List of items in the db return as *[]RummageDBItem
-func (db *RummageDB) ListItems() *[]RummageDBItem {
+// List of items in the db return as []RummageDBItem
+func (db *RummageDB) ListItems() []RummageDBItem {
 	var items []RummageDBItem
 
 	scanOverFile(db.FilePath, func(scanner *bufio.Scanner) {
@@ -172,5 +175,5 @@ func (db *RummageDB) ListItems() *[]RummageDBItem {
 		items = append(items, item)
 	})
 
-	return &items
+	return items
 }

@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	db, err := db.Access()
+	db, err := db.Access("")
 	if err != nil {
 		panic(err)
 	}
