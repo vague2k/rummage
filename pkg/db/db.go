@@ -87,32 +87,31 @@ func (db *RummageDB) AddItem(entry string) (*RummageDBItem, error) {
 //
 // If the db cannot be read, an error will be propagated.
 func (db *RummageDB) SelectItem(entry string) (*RummageDBItem, bool) {
-	file, err := os.Open(db.FilePath)
-	if err != nil {
-		log.Fatalf("Could not open file path %s for reading: \n%s", db.FilePath, err)
-	}
-	defer file.Close()
+	var item *RummageDBItem
+	var exists bool
 
-	scanner := bufio.NewScanner(file)
-
-	for scanner.Scan() {
+	scanOverFile(db.FilePath, func(scanner *bufio.Scanner) {
 		text := scanner.Text()
 		entryFromDB := strings.Split(text, "\x00\x00")
-		if entry == entryFromDB[0] {
 
-			last_accessed, _ := strconv.ParseInt(entryFromDB[2], 10, 64)
-			score, _ := strconv.ParseFloat(entryFromDB[1], 0)
-
-			item := &RummageDBItem{
-				Entry:        entryFromDB[0],
-				Score:        score,
-				LastAccessed: last_accessed,
-			}
-			return item, true
+		if entry != entryFromDB[0] {
+			item, exists = nil, false
 		}
-	}
 
-	return nil, false
+		entry := entryFromDB[0]
+		lastAccessed, _ := strconv.ParseInt(entryFromDB[2], 10, 64)
+		score, _ := strconv.ParseFloat(entryFromDB[1], 0)
+
+		selectedItem := &RummageDBItem{
+			Entry:        entry,
+			Score:        score,
+			LastAccessed: lastAccessed,
+		}
+
+		item, exists = selectedItem, true
+	})
+
+	return item, exists
 }
 
 // Updates an item in the db if the entry can be found. An entry not being found is treated as an error.
@@ -155,16 +154,9 @@ func (db *RummageDB) UpdateItem(entry string, updated *RummageDBItem) (*RummageD
 
 // List of items in the db return as *[]RummageDBItem
 func (db *RummageDB) ListItems() *[]RummageDBItem {
-	file, err := os.Open(db.FilePath)
-	if err != nil {
-		log.Fatalf("Could not open file path %s for reading: \n%s", db.FilePath, err)
-	}
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
 	var items []RummageDBItem
 
-	for scanner.Scan() {
+	scanOverFile(db.FilePath, func(scanner *bufio.Scanner) {
 		splitItem := strings.Split(scanner.Text(), "\x00\x00")
 
 		entry := splitItem[0]
@@ -178,7 +170,7 @@ func (db *RummageDB) ListItems() *[]RummageDBItem {
 		}
 
 		items = append(items, item)
-	}
+	})
 
 	return &items
 }

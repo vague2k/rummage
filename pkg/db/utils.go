@@ -1,8 +1,10 @@
 package db
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -47,4 +49,21 @@ func dataDir() (string, error) {
 	}
 
 	return dataDir, nil
+}
+
+// Takes a file path and open's it, allowing you to scan over it performing some operation using *bufio.scanner.
+//
+// The file opened in RONLY and is defered to close after the callback's execution is complete.
+func scanOverFile(path string, callback func(scanner *bufio.Scanner)) {
+	file, err := os.Open(path)
+	if err != nil {
+		log.Fatalf("Could not open file path %s for reading: \n%s", path, err)
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+
+	for scanner.Scan() {
+		callback(scanner)
+	}
 }
