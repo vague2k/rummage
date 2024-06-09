@@ -19,10 +19,10 @@ func main() {
 	item = item.RecalculateScore()
 
 	item, err = db.UpdateItem(item.Entry, item)
+	if err != nil {
+		panic(err)
+	}
 	// b, err := os.ReadFile(db.FilePath)
-	// if err != nil {
-	// 	panic(err)
-	// }
 	// fmt.Print(string(b))
 
 	fmt.Println("UPDATED ENTRY: ", item.Entry)

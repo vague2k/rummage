@@ -39,7 +39,7 @@ func (i *RummageDBItem) ScoreAsString() string {
 func (i *RummageDBItem) RecalculateScore() *RummageDBItem {
 	var score float64
 
-	duration := time.Now().Sub(time.Unix(i.LastAccessed, 0))
+	duration := time.Since(time.Unix(i.LastAccessed, 0))
 	fmt.Println(duration.Seconds())
 
 	if duration > HOUR {

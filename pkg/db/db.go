@@ -102,8 +102,8 @@ func (db *RummageDB) SelectItem(entry string) (*RummageDBItem, bool) {
 		}
 
 		entry := entryFromDB[0]
-		lastAccessed, _ := strconv.ParseInt(entryFromDB[2], 10, 64)
-		score, _ := strconv.ParseFloat(entryFromDB[1], 0)
+		lastAccessed, _ := strconv.ParseInt(entryFromDB[2], 10, 0)
+		score, _ := strconv.ParseFloat(entryFromDB[1], 64)
 
 		selectedItem := &RummageDBItem{
 			Entry:        entry,
