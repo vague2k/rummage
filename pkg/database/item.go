@@ -36,12 +36,10 @@ func (i *RummageDBItem) ScoreAsString() string {
 }
 
 // Recalculates an item's score based on the last time it was last accessed.
-//
-// TODO: needs testing
 func (i *RummageDBItem) RecalculateScore() float64 {
 	var score float64
 
-	duration := time.Since(time.Unix(i.LastAccessed, 0))
+	duration := i.LastAccessed - time.Now().Unix()
 
 	// the older the time, the lower the score
 	if duration < HOUR {
