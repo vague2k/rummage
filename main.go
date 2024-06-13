@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/vague2k/rummage/pkg/db"
+	"github.com/vague2k/rummage/pkg/database"
 )
 
 func main() {
-	r, err := db.InitRummageDB("")
+	r, err := database.Init("")
 	if err != nil {
 		panic(err)
 	}
@@ -22,7 +22,7 @@ func main() {
 	item, _ := r.SelectItem("somecontent")
 	fmt.Println(item)
 
-	update := &db.RummageDBItem{
+	update := &database.RummageDBItem{
 		Entry:        "updatedsomeothercontent",
 		Score:        2.0,
 		LastAccessed: time.Now().Unix(),
