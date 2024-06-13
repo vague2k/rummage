@@ -14,7 +14,10 @@ func main() {
 	}
 	defer r.DB.Close()
 
-	r.AddItem("somecontent")
+	_, err = r.AddItem("somecontent")
+	if err != nil {
+		panic(err)
+	}
 
 	item, _ := r.SelectItem("somecontent")
 	fmt.Println(item)
@@ -24,5 +27,8 @@ func main() {
 		Score:        2.0,
 		LastAccessed: time.Now().Unix(),
 	}
-	r.UpdateItem("somecontent", update)
+	_, err = r.UpdateItem("somecontent", update)
+	if err != nil {
+		panic(err)
+	}
 }

@@ -63,7 +63,10 @@ func TestAddItem(t *testing.T) {
 		var lastAccessed int64
 
 		for rows.Next() {
-			rows.Scan(&entry, &score, &lastAccessed)
+			err := rows.Scan(&entry, &score, &lastAccessed)
+			if err != nil {
+				t.Errorf("Error occured when trying to scan rows: \n%s", err)
+			}
 		}
 
 		switch true {
