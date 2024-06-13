@@ -1,4 +1,4 @@
-package db
+package database
 
 import (
 	"fmt"
@@ -6,7 +6,9 @@ import (
 )
 
 type RummageDBItem struct {
+	// The name of the pkg to get
 	Entry string
+	// the score calculated based on recency. higher means more frequent uses.
 	Score float64
 	// An int64 integer that represents the last time this value was accessed.
 	// An "access" is considered anytime this value was last updated or the first time it was added.
@@ -36,25 +38,21 @@ func (i *RummageDBItem) ScoreAsString() string {
 // Recalculates an item's score based on the last time it was last accessed.
 //
 // TODO: needs testing
-func (i *RummageDBItem) RecalculateScore() *RummageDBItem {
+func (i *RummageDBItem) RecalculateScore() float64 {
 	var score float64
 
 	duration := time.Since(time.Unix(i.LastAccessed, 0))
-	fmt.Println(duration.Seconds())
 
-	if duration > HOUR {
+	// the older the time, the lower the score
+	if duration < HOUR {
 		score = i.Score * 4.0
-	} else if duration > DAY {
+	} else if duration < DAY {
 		score = i.Score * 2.0
-	} else if duration > WEEK {
+	} else if duration < WEEK {
 		score = i.Score * 0.5
 	} else {
 		score = i.Score * 0.25
 	}
 
-	return &RummageDBItem{
-		Entry:        i.Entry,
-		Score:        score,
-		LastAccessed: time.Now().Unix(),
-	}
+	return score
 }
