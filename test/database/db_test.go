@@ -1,17 +1,17 @@
-package db_test
+package database_test
 
 import (
 	"path/filepath"
 	"testing"
 	"time"
 
-	"github.com/vague2k/rummage/pkg/db"
+	"github.com/vague2k/rummage/pkg/database"
 )
 
 func TestAccess(t *testing.T) {
 	t.Run("Initializing db does not error", func(t *testing.T) {
 		tmp := t.TempDir()
-		r, err := db.InitRummageDB(tmp)
+		r, err := database.Init(tmp)
 		if err != nil {
 			t.Errorf("Could not open db: \n%s", err)
 		}
@@ -19,7 +19,7 @@ func TestAccess(t *testing.T) {
 	})
 	t.Run("db returns correct dir and filepath", func(t *testing.T) {
 		tmp := t.TempDir()
-		got, err := db.InitRummageDB(tmp)
+		got, err := database.Init(tmp)
 		if err != nil {
 			t.Errorf("Could not open db: \n%s", err)
 		}
@@ -39,7 +39,7 @@ func TestAccess(t *testing.T) {
 
 func TestAddItem(t *testing.T) {
 	tmp := t.TempDir()
-	r, err := db.InitRummageDB(tmp)
+	r, err := database.Init(tmp)
 	if err != nil {
 		t.Errorf("Could not open db: \n%s", err)
 	}
@@ -82,7 +82,7 @@ func TestAddItem(t *testing.T) {
 
 func TestSelectItem(t *testing.T) {
 	tmp := t.TempDir()
-	r, err := db.InitRummageDB(tmp)
+	r, err := database.Init(tmp)
 	if err != nil {
 		t.Errorf("Could not open db: \n%s", err)
 	}
@@ -140,7 +140,7 @@ func TestSelectItem(t *testing.T) {
 
 func TestUpdatedItem(t *testing.T) {
 	tmp := t.TempDir()
-	r, err := db.InitRummageDB(tmp)
+	r, err := database.Init(tmp)
 	if err != nil {
 		t.Errorf("Could not open db: \n%s", err)
 	}
@@ -150,7 +150,7 @@ func TestUpdatedItem(t *testing.T) {
 		t.Errorf("Issue adding item to db: \n%s", err)
 	}
 
-	update := &db.RummageDBItem{
+	update := &database.RummageDBItem{
 		Entry:        "updatedfirstitem",
 		Score:        2.0,
 		LastAccessed: time.Now().Unix(),

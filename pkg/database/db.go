@@ -1,4 +1,4 @@
-package db
+package database
 
 import (
 	"database/sql"
@@ -11,16 +11,17 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
+// A database wrapper for Rummage that pertains to rummage's actions
 type RummageDB struct {
-	DB       *sql.DB
-	Dir      string
-	FilePath string
+	DB       *sql.DB // Pointer to the underlying sqlite database
+	Dir      string  // The parent directory of the database
+	FilePath string  // the database path
 }
 
 // Inits the rummage db, returning a pointer to the db instance.
 //
-// InitRummageDB() also makes sure the "items" table exists.
-func InitRummageDB(path string) (*RummageDB, error) {
+// Init() also makes sure the "items" table exists.
+func Init(path string) (*RummageDB, error) {
 	if path == "" {
 		dataDir, err := dataDir()
 		if err != nil {
