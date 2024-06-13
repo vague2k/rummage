@@ -2,30 +2,27 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/vague2k/rummage/pkg/db"
 )
 
 func main() {
-	db, err := db.Access("")
+	r, err := db.InitRummageDB("")
 	if err != nil {
 		panic(err)
 	}
-	item, err := db.AddItem("someothercontent")
-	if err != nil {
-		panic(err)
+	defer r.DB.Close()
+
+	r.AddItem("somecontent")
+
+	item, _ := r.SelectItem("somecontent")
+	fmt.Println(item)
+
+	update := &db.RummageDBItem{
+		Entry:        "updatedsomeothercontent",
+		Score:        2.0,
+		LastAccessed: time.Now().Unix(),
 	}
-
-	item = item.RecalculateScore()
-
-	item, err = db.UpdateItem(item.Entry, item)
-	if err != nil {
-		panic(err)
-	}
-	// b, err := os.ReadFile(db.FilePath)
-	// fmt.Print(string(b))
-
-	fmt.Println("UPDATED ENTRY: ", item.Entry)
-	fmt.Println("UPDATED SCORE: ", item.Score)
-	fmt.Println("UPDATED EPOCH:", item.LastAccessed)
+	r.UpdateItem("somecontent", update)
 }

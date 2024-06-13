@@ -2,8 +2,6 @@ package db_test
 
 import (
 	"path/filepath"
-	"strconv"
-	"strings"
 	"testing"
 	"time"
 
@@ -11,22 +9,24 @@ import (
 )
 
 func TestAccess(t *testing.T) {
-	t.Run("Accessing db does not error", func(t *testing.T) {
+	t.Run("Initializing db does not error", func(t *testing.T) {
 		tmp := t.TempDir()
-		_, err := db.Access(tmp)
+		r, err := db.InitRummageDB(tmp)
 		if err != nil {
 			t.Errorf("Could not open db: \n%s", err)
 		}
+		defer r.DB.Close()
 	})
 	t.Run("db returns correct dir and filepath", func(t *testing.T) {
 		tmp := t.TempDir()
-		got, err := db.Access(tmp)
+		got, err := db.InitRummageDB(tmp)
 		if err != nil {
 			t.Errorf("Could not open db: \n%s", err)
 		}
+		defer got.DB.Close()
 
 		expectedDir := filepath.Join(tmp, "rummage")
-		expectedDBFile := filepath.Join(expectedDir, "db.rum")
+		expectedDBFile := filepath.Join(expectedDir, "rummage.db")
 
 		switch true {
 		case got.Dir != expectedDir:
@@ -39,96 +39,138 @@ func TestAccess(t *testing.T) {
 
 func TestAddItem(t *testing.T) {
 	tmp := t.TempDir()
-	database, err := db.Access(tmp)
+	r, err := db.InitRummageDB(tmp)
 	if err != nil {
 		t.Errorf("Could not open db: \n%s", err)
 	}
+	defer r.DB.Close()
 
-	t.Run("Properly creates a db item", func(t *testing.T) {
-		b := db.InternalCreateDBItem("content", 1.0, false)
-		item := strings.Split(string(b), "\x00\x00")
+	t.Run("Can add item to db", func(t *testing.T) {
+		_, err := r.AddItem("content")
+		if err != nil {
+			t.Errorf("Issue occured adding item to db: \n%s", err)
+		}
+	})
 
-		entry := item[0]
-		score, _ := strconv.ParseFloat(item[1], 64)
-		created, _ := strconv.ParseInt(item[2], 10, 0)
+	t.Run("Assert added item has correct values", func(t *testing.T) {
+		rows, err := r.DB.Query("SELECT * FROM items WHERE entry = 'content';")
+		if err != nil {
+			t.Errorf("Issue occured trying to select recently added item from db: \n%s", err)
+		}
+
+		var entry string
+		var score float64
+		var lastAccessed int64
+
+		for rows.Next() {
+			rows.Scan(&entry, &score, &lastAccessed)
+		}
 
 		switch true {
 		case entry != "content":
 			t.Errorf("Entry was %s, expected %s", entry, "content")
 		case score != 1.0:
 			t.Errorf("Score was %f, expected %f", score, 1.0)
-		case created != time.Now().Unix():
-			t.Errorf("Created was %d, expected %v", created, time.Now().Unix())
-		}
-	})
-
-	t.Run("Properly adds item to db", func(t *testing.T) {
-		item, err := database.AddItem("content")
-		if err != nil {
-			t.Errorf("Issue occured adding item to db: \n%s", err)
-		}
-
-		switch true {
-		case item.Entry != "content":
-			t.Errorf("Entry was %s, expected %s", item.Entry, "content")
-		case item.Score != 1.0:
-			t.Errorf("Score was %f, expected %f", item.Score, 1.0)
-		case item.LastAccessed != time.Now().Unix():
-			t.Errorf("Score was %d, expected %v", item.LastAccessed, time.Now().Unix())
+		case lastAccessed != time.Now().Unix():
+			t.Errorf("Created was %d, expected %v", lastAccessed, time.Now().Unix())
 		}
 	})
 }
 
 func TestSelectItem(t *testing.T) {
 	tmp := t.TempDir()
-	db, err := db.Access(tmp)
+	r, err := db.InitRummageDB(tmp)
 	if err != nil {
 		t.Errorf("Could not open db: \n%s", err)
 	}
+	defer r.DB.Close()
 
-	_, err = db.AddItem("firstitem")
+	_, err = r.AddItem("firstitem")
 	if err != nil {
 		t.Errorf("Issue adding item to db: \n%s", err)
 	}
 
-	items := db.ListItems()
-	t.Run("Returns correct amount of items", func(t *testing.T) {
-		if len(items) != 1 {
-			t.Errorf("Expected ListItems to return %d items, instead got %d items.", 1, len(items))
+	// checking the LastAccessed field is not neccessarily important for this test
+	t.Run("Assert the added item exists", func(t *testing.T) {
+		item, _ := r.SelectItem("firstitem")
+
+		// checking the LastAccessed field is not neccessarily important for this check
+		if item.Entry != "firstitem" {
+			t.Errorf("Expected entry to be %s, but got %s.", "firstitem", item.Entry)
+		}
+		if item.Score != 1.0 {
+			t.Errorf("Expected entry to be %f, but got %f.", 1.0, item.Score)
 		}
 	})
 
-	t.Run("Assert each item is what was added", func(t *testing.T) {
-		// checking the LastAccessed field of each item is not neccessarily important for this check
-		if items[0].Entry != "firstitem" {
-			t.Errorf("Expected entry to be %s, but got %s.", "firstitem", items[0].Entry)
+	t.Run("Assert added item is the only item in the db after attempting to add duplicate", func(t *testing.T) {
+		_, err = r.AddItem("firstitem")
+		if err != nil {
+			t.Errorf("Issue adding item to db: \n%s", err)
 		}
-		if items[0].Score != 1.0 {
-			t.Errorf("Expected entry to be %f, but got %f.", 1.0, items[0].Score)
+
+		rows, err := r.DB.Query("SELECT entry FROM items WHERE entry = ?", "firstitem")
+		if err != nil {
+			t.Errorf("Issue querying item from db: \n%s", err)
+		}
+		defer rows.Close()
+
+		count := 0
+		for rows.Next() {
+			count++
+		}
+
+		if count != 1 {
+			t.Errorf("Expected 1 item in the db, but found %d.", count)
+		}
+	})
+
+	t.Run("Assert an item does not exist", func(t *testing.T) {
+		entryShouldNotExist := "somethingthatshouldntexist"
+		_, exists := r.SelectItem(entryShouldNotExist)
+
+		if exists {
+			t.Errorf("Expected item with entry '%s' to not exist, but it actually does.", entryShouldNotExist)
 		}
 	})
 }
 
 func TestUpdatedItem(t *testing.T) {
 	tmp := t.TempDir()
-	database, err := db.Access(tmp)
+	r, err := db.InitRummageDB(tmp)
 	if err != nil {
 		t.Errorf("Could not open db: \n%s", err)
 	}
 
-	originalItem, err := database.AddItem("firstitem")
+	originalItem, err := r.AddItem("firstitem")
 	if err != nil {
 		t.Errorf("Issue adding item to db: \n%s", err)
 	}
 
-	t.Run("Returns correct updated item", func(t *testing.T) {
-		update := &db.RummageDBItem{
-			Entry:        "updatedfirstitem",
-			Score:        2.0,
-			LastAccessed: time.Now().Unix(),
+	update := &db.RummageDBItem{
+		Entry:        "updatedfirstitem",
+		Score:        2.0,
+		LastAccessed: time.Now().Unix(),
+	}
+
+	t.Run("Assert original item is actually updated", func(t *testing.T) {
+		_, err := r.UpdateItem("firstitem", update)
+		if err != nil {
+			t.Errorf("Issue updating db item: \n%s", err)
 		}
 
-		updateItem, err := database.UpdateItem("firstitem", update)
+		_, err = r.DB.Query(`
+            SELECT entry FROM items 
+            WHERE score = ?`,
+			2.0,
+		)
+		if err != nil {
+			t.Errorf("Issue querying item from db: \n%s", err)
+		}
+	})
+
+	t.Run("Returns pointer to updated item", func(t *testing.T) {
+		updateItem, err := r.UpdateItem("firstitem", update)
 		if err != nil {
 			t.Errorf("Issue updating db item: \n%s", err)
 		}

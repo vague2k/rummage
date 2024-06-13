@@ -1,27 +1,26 @@
 package db
 
 import (
-	"bufio"
+	"database/sql"
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
-	"strconv"
-	"strings"
 	"time"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
 type RummageDB struct {
-	Dir      string // The db's parent directory
-	FilePath string // The db.rum file path
-	Items    []RummageDBItem
+	DB       *sql.DB
+	Dir      string
+	FilePath string
 }
 
-// Accesses the rummage db, returning a pointer to the db instance.
+// Inits the rummage db, returning a pointer to the db instance.
 //
-// Access() also makes sure the directory exists, but does not write anything to it's children.
-func Access(path string) (*RummageDB, error) {
+// InitRummageDB() also makes sure the "items" table exists.
+func InitRummageDB(path string) (*RummageDB, error) {
 	if path == "" {
 		dataDir, err := dataDir()
 		if err != nil {
@@ -30,8 +29,10 @@ func Access(path string) (*RummageDB, error) {
 		path = dataDir
 	}
 
+	// make sure the path to the db exists
+	// TODO: may need to rethink this if we want to use a user defined config file
 	dir := filepath.Join(path, "rummage")
-	dbFile := filepath.Join(dir, "db.rum")
+	dbFile := filepath.Join(dir, "rummage.db")
 
 	err := os.MkdirAll(dir, 0777)
 	if err != nil {
@@ -39,7 +40,28 @@ func Access(path string) (*RummageDB, error) {
 		return nil, errors.New(msg)
 	}
 
+	// open the db
+	database, err := sql.Open("sqlite3", dbFile)
+	if err != nil {
+		msg := fmt.Sprintf("Could not init rummage db: \n%s", err)
+		return nil, errors.New(msg)
+	}
+
+	// create the items table if it doesn't exist
+	_, err = database.Exec(`
+        CREATE TABLE IF NOT EXISTS items (
+            entry TEXT,
+            score FLOAT,
+            lastAccessed INTEGER
+        )
+    `)
+	if err != nil {
+		msg := fmt.Sprintf("Could not create 'items' table in rummage db: \n%s", err)
+		return nil, errors.New(msg)
+	}
+
 	instance := &RummageDB{
+		DB:       database,
 		Dir:      dir,
 		FilePath: dbFile,
 	}
@@ -50,130 +72,85 @@ func Access(path string) (*RummageDB, error) {
 // Adds an item to the db and returns a pointer to the item that was just added.
 // Newly added items are given a default score of 1.0.
 //
-// If the db.FilePath does not exist, it will be created.
-//
 // If the item's entry already exists, AddItem() returns the item
-func (db *RummageDB) AddItem(entry string) (*RummageDBItem, error) {
-	// make sure the file exists first before checking if the entry exists,
-	// to make sure "db.rum" is created if that file does not exist
-	file, err := os.OpenFile(db.FilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
-	if err != nil {
-		msg := fmt.Sprintf("Could not open file path %s for writing: \n%s", db.FilePath, err)
-		return nil, errors.New(msg)
-	}
-	defer file.Close()
+func (r *RummageDB) AddItem(entry string) (*RummageDBItem, error) {
+	var item RummageDBItem
 
-	if item, exists := db.SelectItem(entry); exists {
+	if item, exists := r.SelectItem(entry); exists {
 		return item, nil
 	}
 
-	defaultScore := 1.0
-	item := createDBItem(entry, defaultScore, true)
-
-	_, err = file.Write(item)
+	_, err := r.DB.Exec(`
+        INSERT INTO items (entry, score, lastAccessed) 
+        VALUES (?, ?, ?)`,
+		entry, 1.0, time.Now().Unix(),
+	)
 	if err != nil {
-		msg := fmt.Sprintf("Issue occured when writing item to file path %s: \n%s", db.FilePath, err)
+		msg := fmt.Sprintf("Issue occured when adding item to db: \n%s", err)
 		return nil, errors.New(msg)
 	}
 
-	return &RummageDBItem{
+	item = RummageDBItem{
 		Entry:        entry,
-		Score:        defaultScore,
+		Score:        1.0,
 		LastAccessed: time.Now().Unix(),
-	}, nil
+	}
+	return &item, nil
 }
 
-// Selects a specific db.Item, and returns a pointer to it.
+// Selects a specific item in the db by it's entry, and returns a pointer to it.
 //
-// If the item does exist, returns *RummageDBItem, true.
 // If the item does not exist, returns nil, false
-//
-// If the db cannot be read, an error will be propagated.
-func (db *RummageDB) SelectItem(entry string) (*RummageDBItem, bool) {
-	var item *RummageDBItem
-	var exists bool
+func (r *RummageDB) SelectItem(entry string) (*RummageDBItem, bool) {
+	var item RummageDBItem
 
-	scanOverFile(db.FilePath, func(scanner *bufio.Scanner) {
-		text := scanner.Text()
-		entryFromDB := strings.Split(text, "\x00\x00")
+	row := r.DB.QueryRow(`
+        SELECT * FROM items WHERE entry = ? 
+        LIMIT 1
+        `,
+		entry,
+	)
 
-		if entry != entryFromDB[0] {
-			item, exists = nil, false
-		}
-
-		entry := entryFromDB[0]
-		lastAccessed, _ := strconv.ParseInt(entryFromDB[2], 10, 0)
-		score, _ := strconv.ParseFloat(entryFromDB[1], 64)
-
-		selectedItem := &RummageDBItem{
-			Entry:        entry,
-			Score:        score,
-			LastAccessed: lastAccessed,
-		}
-
-		item, exists = selectedItem, true
-	})
-
-	return item, exists
-}
-
-// Updates an item in the db if the entry can be found. An entry not being found is treated as an error.
-//
-// If the db file can't be read, written to, or if the entry can't be found, an error will also be returned.
-func (db *RummageDB) UpdateItem(entry string, updated *RummageDBItem) (*RummageDBItem, error) {
-	contents, err := os.ReadFile(db.FilePath)
-	if err != nil {
-		msg := fmt.Sprintf("Could not open file path %s for reading: \n%s", db.FilePath, err)
-		return nil, errors.New(msg)
+	err := row.Scan(&item.Entry, &item.Score, &item.LastAccessed)
+	if err != nil && err == sql.ErrNoRows {
+		return nil, false
 	}
 
-	if _, exists := db.SelectItem(entry); !exists {
+	return &item, true
+}
+
+// Updates an item in the db if the entry can be found.
+//
+// An entry not being found is treated as an error.
+func (r *RummageDB) UpdateItem(entry string, updated *RummageDBItem) (*RummageDBItem, error) {
+	if _, exists := r.SelectItem(entry); !exists {
 		msg := fmt.Sprintf("The entry, %s could not be found", entry)
 		return nil, errors.New(msg)
 	}
 
-	lines := strings.Split(string(contents), "\n")
-	for i, line := range lines {
-		item := strings.Split(line, "\x00\x00")
-		if item[0] == entry {
-			lines[i] = string(createDBItem(updated.Entry, updated.Score, false))
-		}
-	}
+	newEntry := updated.Entry
+	newScore := updated.Score
+	newLastAccessed := time.Now().Unix()
 
-	output := strings.Join(lines, "\n")
-	err = os.WriteFile(db.FilePath, []byte(output), 0644)
+	_, err := r.DB.Exec(`
+        UPDATE items
+        SET score = ?, lastAccessed = ?
+        WHERE entry = ?
+        `,
+		newScore,
+		newLastAccessed,
+		entry,
+	)
 	if err != nil {
-		log.Fatalf("Could not open update (write) item at path %s: \n%s", db.FilePath, err)
+		msg := fmt.Sprintf("Issue updating db item: \n%s", err)
+		return nil, errors.New(msg)
 	}
 
 	updatedItem := &RummageDBItem{
-		Entry:        updated.Entry,
-		Score:        updated.Score,
-		LastAccessed: time.Now().Unix(),
+		Entry:        newEntry,
+		Score:        newScore,
+		LastAccessed: newLastAccessed,
 	}
 
 	return updatedItem, nil
-}
-
-// List of items in the db return as []RummageDBItem
-func (db *RummageDB) ListItems() []RummageDBItem {
-	var items []RummageDBItem
-
-	scanOverFile(db.FilePath, func(scanner *bufio.Scanner) {
-		splitItem := strings.Split(scanner.Text(), "\x00\x00")
-
-		entry := splitItem[0]
-		score, _ := strconv.ParseFloat(splitItem[1], 64)
-		lastAccessed, _ := strconv.ParseInt(splitItem[2], 10, 0)
-
-		item := RummageDBItem{
-			Entry:        entry,
-			Score:        score,
-			LastAccessed: lastAccessed,
-		}
-
-		items = append(items, item)
-	})
-
-	return items
 }
