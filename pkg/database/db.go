@@ -151,3 +151,30 @@ func (r *RummageDB) UpdateItem(entry string, updated *RummageDBItem) (*RummageDB
 
 	return updatedItem, nil
 }
+
+func (r *RummageDB) ListItems() ([]RummageDBItem, error) {
+	rows, err := r.DB.Query("SELECT * FROM items")
+	if err != nil {
+		msg := fmt.Sprintf("Could not get items from db: \n%s", err)
+		return nil, errors.New(msg)
+	}
+
+	var items []RummageDBItem
+	for rows.Next() {
+		var entry string
+		var score float64
+		var lastAccessed int64
+
+		rows.Scan(&entry, &score, &lastAccessed)
+
+		nextItem := RummageDBItem{
+			Entry:        entry,
+			Score:        score,
+			LastAccessed: lastAccessed,
+		}
+
+		items = append(items, nextItem)
+	}
+
+	return items, nil
+}

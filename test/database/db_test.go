@@ -1,6 +1,7 @@
 package database_test
 
 import (
+	"fmt"
 	"path/filepath"
 	"testing"
 	"time"
@@ -144,6 +145,7 @@ func TestUpdatedItem(t *testing.T) {
 	if err != nil {
 		t.Errorf("Could not open db: \n%s", err)
 	}
+	defer r.DB.Close()
 
 	originalItem, err := r.AddItem("firstitem")
 	if err != nil {
@@ -185,4 +187,32 @@ func TestUpdatedItem(t *testing.T) {
 			t.Errorf("Original score %f and the updated score are the same, expected %f", originalItem.Score, update.Score)
 		}
 	})
+}
+
+func TestListItems(t *testing.T) {
+	tmp := t.TempDir()
+	r, err := database.Init(tmp)
+	if err != nil {
+		t.Errorf("Could not open db: \n%s", err)
+	}
+	defer r.DB.Close()
+
+	for i := range 5 {
+		_, err = r.AddItem(fmt.Sprintf("item%d", i))
+		if err != nil {
+			t.Errorf("Issue adding item to db: \n%s", err)
+		}
+	}
+
+	items, err := r.ListItems()
+	if err != nil {
+		t.Errorf("Issue getting items from db: \n%s", err)
+	}
+
+	expected := 5
+	got := len(items)
+
+	if got != expected {
+		t.Errorf("Expected %d, but got %d items", expected, got)
+	}
 }
