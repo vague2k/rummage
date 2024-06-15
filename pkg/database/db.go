@@ -152,6 +152,9 @@ func (r *RummageDB) UpdateItem(entry string, updated *RummageDBItem) (*RummageDB
 	return updatedItem, nil
 }
 
+// List all items in the db, returning []RummageDBItem
+//
+// An error is thrown if there was an issue scanning a row.
 func (r *RummageDB) ListItems() ([]RummageDBItem, error) {
 	rows, err := r.DB.Query("SELECT * FROM items")
 	if err != nil {
@@ -161,11 +164,16 @@ func (r *RummageDB) ListItems() ([]RummageDBItem, error) {
 
 	var items []RummageDBItem
 	for rows.Next() {
+		count := 0 // track which iteration of the loop incase of err when scanning rows
 		var entry string
 		var score float64
 		var lastAccessed int64
 
-		rows.Scan(&entry, &score, &lastAccessed)
+		err := rows.Scan(&entry, &score, &lastAccessed)
+		if err != nil {
+			msg := fmt.Sprintf("Could not get (%d)th iteration of item from db: \n%s", count, err)
+			return nil, errors.New(msg)
+		}
 
 		nextItem := RummageDBItem{
 			Entry:        entry,
@@ -174,6 +182,7 @@ func (r *RummageDB) ListItems() ([]RummageDBItem, error) {
 		}
 
 		items = append(items, nextItem)
+		count++
 	}
 
 	return items, nil
