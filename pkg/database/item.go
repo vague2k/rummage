@@ -18,9 +18,9 @@ type RummageDBItem struct {
 }
 
 const (
-	HOUR = 3600
-	DAY  = HOUR * 24
-	WEEK = DAY * 7
+	_HOUR = 3600
+	_DAY  = _HOUR * 24
+	_WEEK = _DAY * 7
 )
 
 // Returns the LastAccessed field as a string
@@ -42,11 +42,11 @@ func (i *RummageDBItem) RecalculateScore() float64 {
 	duration := i.LastAccessed - time.Now().Unix()
 
 	// the older the time, the lower the score
-	if duration < HOUR {
+	if duration < _HOUR {
 		score = i.Score * 4.0
-	} else if duration < DAY {
+	} else if duration < _DAY {
 		score = i.Score * 2.0
-	} else if duration < WEEK {
+	} else if duration < _WEEK {
 		score = i.Score * 0.5
 	} else {
 		score = i.Score * 0.25
