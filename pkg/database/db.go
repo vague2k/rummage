@@ -129,17 +129,13 @@ func (r *RummageDB) UpdateItem(entry string, updated *RummageDBItem) (*RummageDB
 		return nil, errors.New(msg)
 	}
 
-	newEntry := updated.Entry
-	newScore := updated.Score
-	newLastAccessed := time.Now().Unix()
-
 	_, err := r.DB.Exec(`
         UPDATE items
         SET score = ?, lastAccessed = ?
         WHERE entry = ?
         `,
-		newScore,
-		newLastAccessed,
+		updated.Score,
+		updated.LastAccessed,
 		entry,
 	)
 	if err != nil {
@@ -148,9 +144,9 @@ func (r *RummageDB) UpdateItem(entry string, updated *RummageDBItem) (*RummageDB
 	}
 
 	updatedItem := &RummageDBItem{
-		Entry:        newEntry,
-		Score:        newScore,
-		LastAccessed: newLastAccessed,
+		Entry:        entry,
+		Score:        updated.Score,
+		LastAccessed: updated.LastAccessed,
 	}
 
 	return updatedItem, nil

@@ -179,8 +179,8 @@ func TestUpdatedItem(t *testing.T) {
 		}
 
 		switch true {
-		case originalItem.Entry == updateItem.Entry:
-			t.Errorf("Original entry %s and the updated entry are the same, expected %s", originalItem.Entry, update.Entry)
+		case originalItem.Entry != updateItem.Entry:
+			t.Errorf("Original entry and the updated entry are not the same, expected %s, but got %s", originalItem.Entry, update.Entry)
 		case originalItem.Score == updateItem.Score:
 			t.Errorf("Original score %f and the updated score are the same, expected %f", originalItem.Score, update.Score)
 		}
