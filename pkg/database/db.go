@@ -41,25 +41,12 @@ func Init(path string) (*RummageDB, error) {
 		return nil, errors.New(msg)
 	}
 
-	// open the db
 	database, err := sql.Open("sqlite3", dbFile)
 	if err != nil {
 		msg := fmt.Sprintf("Could not init rummage db: \n%s", err)
 		return nil, errors.New(msg)
 	}
-
-	// create the items table if it doesn't exist
-	_, err = database.Exec(`
-        CREATE TABLE IF NOT EXISTS items (
-            entry TEXT,
-            score FLOAT,
-            lastAccessed INTEGER
-        )
-    `)
-	if err != nil {
-		msg := fmt.Sprintf("Could not create 'items' table in rummage db: \n%s", err)
-		return nil, errors.New(msg)
-	}
+	createTable(database) // create the items table if it doesn't exist
 
 	instance := &RummageDB{
 		DB:       database,
