@@ -209,10 +209,21 @@ func TestListItems(t *testing.T) {
 		t.Errorf("Issue getting items from db: \n%s", err)
 	}
 
-	expected := 5
-	got := len(items)
+	t.Run("Returns expected amount of items", func(t *testing.T) {
+		expected := 5
+		got := len(items)
 
-	if got != expected {
-		t.Errorf("Expected %d, but got %d items", expected, got)
-	}
+		if got != expected {
+			t.Errorf("Expected %d, but got %d items", expected, got)
+		}
+	})
+
+	t.Run("Assert each item is correctly typed", func(t *testing.T) {
+		for _, item := range items {
+			var check interface{} = item
+			if value, ok := check.(database.RummageDBItem); !ok {
+				t.Errorf("The item %v is not of type database.RummageDBItem", value)
+			}
+		}
+	})
 }
