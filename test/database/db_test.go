@@ -227,3 +227,82 @@ func TestListItems(t *testing.T) {
 		}
 	})
 }
+
+func TestEntryWithHighestScore(t *testing.T) {
+	t.Run("Returns highest score if multiple entries are found", func(t *testing.T) {
+		tmp := t.TempDir()
+		r, err := database.Init(tmp)
+		if err != nil {
+			t.Errorf("Could not open db: \n%s", err)
+		}
+		defer r.DB.Close()
+
+		for i := range 5 {
+			name := fmt.Sprintf("item%d", i)
+			_, err := r.AddItem(name)
+			if err != nil {
+				t.Errorf("Issue adding item to db: \n%s", err)
+			}
+
+			incrementedItemScore := database.RummageDBItem{
+				Entry:        name,
+				Score:        float64(i),
+				LastAccessed: time.Now().Unix(),
+			}
+
+			_, err = r.UpdateItem(name, &incrementedItemScore)
+			if err != nil {
+				t.Errorf("Issue updating item: \n%s", err)
+			}
+		}
+		got, _ := r.EntryWithHighestScore("it")
+		expected := 4.0
+
+		if got.Score != 4.0 {
+			t.Errorf("Expected highest score to be %f, but got %f", expected, got.Score)
+			t.Log("Got item: ", got)
+		}
+	})
+
+	t.Run("Returns 1 item if it's the only item in the db", func(t *testing.T) {
+		tmp := t.TempDir()
+		r, err := database.Init(tmp)
+		if err != nil {
+			t.Errorf("Could not open db: \n%s", err)
+		}
+		defer r.DB.Close()
+
+		_, err = r.AddItem("item")
+		if err != nil {
+			t.Errorf("Issue adding item to db: \n%s", err)
+		}
+
+		got, _ := r.EntryWithHighestScore("it")
+		expected := 1.0
+
+		if got.Score != 1.0 {
+			t.Errorf("Expected highest score to be %f, but got %f", expected, got.Score)
+			t.Log("Got item: ", got)
+		}
+	})
+
+	t.Run("Returns false if no match was found", func(t *testing.T) {
+		tmp := t.TempDir()
+		r, err := database.Init(tmp)
+		if err != nil {
+			t.Errorf("Could not open db: \n%s", err)
+		}
+		defer r.DB.Close()
+
+		got, gotExists := r.EntryWithHighestScore("it")
+		expectedExists := false
+
+		switch true {
+		case got != nil:
+			t.Errorf("Expected return value to be nil, but got %v instead.", nil)
+		case gotExists != expectedExists:
+			t.Errorf("Expected boolean value to be %v, but got %v instead.", gotExists, expectedExists)
+		}
+		t.Log("Got item: ", got)
+	})
+}

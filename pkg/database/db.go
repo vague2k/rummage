@@ -4,8 +4,10 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -173,4 +175,32 @@ func (r *RummageDB) ListItems() ([]RummageDBItem, error) {
 	}
 
 	return items, nil
+}
+
+// Searches the db for an entry that matches a substring "substr",
+// if multiple matches are found, the match with the highest score's *RummageDBItem is returned
+// If no match was found, false is returned
+func (r *RummageDB) EntryWithHighestScore(substr string) (*RummageDBItem, bool) {
+	items, err := r.ListItems()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var curr float64
+	var highestMatch *RummageDBItem
+
+	for _, item := range items {
+		if strings.Contains(item.Entry, substr) {
+			if item.Score > curr {
+				highestMatch = &item
+				curr = item.Score
+			}
+		}
+	}
+
+	if highestMatch == nil {
+		return nil, false
+	}
+
+	return highestMatch, true
 }
