@@ -81,6 +81,38 @@ func TestAddItem(t *testing.T) {
 	})
 }
 
+func TestAddMultiItems(t *testing.T) {
+	tmp := t.TempDir()
+	r, err := database.Init(tmp)
+	if err != nil {
+		t.Errorf("Could not open db: \n%s", err)
+	}
+	defer r.DB.Close()
+
+	items, err := r.AddMultiItems("item1", "item2", "item3")
+	if err != nil {
+		t.Errorf("Issue adding item to db: \n%s", err)
+	}
+
+	t.Run("Returns expected amount of items", func(t *testing.T) {
+		got := len(items)
+		expected := 3
+
+		if got != expected {
+			t.Errorf("Expected method to add %d items, but get a slice of %d instead", expected, got)
+		}
+	})
+
+	t.Run("Assert each item is correctly typed", func(t *testing.T) {
+		for _, item := range items {
+			var check interface{} = item
+			if value, ok := check.(database.RummageDBItem); !ok {
+				t.Errorf("The item %v is not of type database.RummageDBItem", value)
+			}
+		}
+	})
+}
+
 func TestSelectItem(t *testing.T) {
 	tmp := t.TempDir()
 	r, err := database.Init(tmp)

@@ -204,3 +204,20 @@ func (r *RummageDB) EntryWithHighestScore(substr string) (*RummageDBItem, bool) 
 
 	return highestMatch, true
 }
+
+// Adds multiple items to the db and returns []RummageDBItem
+func (r *RummageDB) AddMultiItems(entries ...string) ([]RummageDBItem, error) {
+	var slice []RummageDBItem
+
+	for n, entry := range entries {
+		item, err := r.AddItem(entry)
+		if err != nil {
+			msg := fmt.Sprintf("Issue occured when adding %d\x00th item to db.", n)
+			return nil, errors.New(msg)
+		}
+
+		slice = append(slice, *item)
+	}
+
+	return slice, nil
+}
