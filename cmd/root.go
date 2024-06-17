@@ -2,8 +2,10 @@ package cmd
 
 import (
 	"os"
+	"os/exec"
 
 	"github.com/spf13/cobra"
+	"github.com/vague2k/rummage/pkg/database"
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -18,7 +20,33 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
-	// Run: func(cmd *cobra.Command, args []string) { },
+	Run: func(cmd *cobra.Command, args []string) {
+		db, err := database.Init("")
+		if err != nil {
+			panic(err)
+		}
+
+		if len(args) == 1 {
+			var pkg string
+			found, exists := db.EntryWithHighestScore(args[0])
+			if !exists {
+				added, err := db.AddItem(args[0])
+				if err != nil {
+					panic(err)
+				}
+				pkg = added.Entry
+			} else {
+				pkg = found.Entry
+			}
+			// FIXME: cmd erros when arg is not a go package
+			cmd := exec.Command("go", "get", pkg)
+			err := cmd.Run()
+			if err != nil {
+				panic(err)
+			}
+			return
+		}
+	},
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -40,5 +68,5 @@ func init() {
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
 	// rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-	rootCmd.AddCommand(addCmd)
+	// rootCmd.AddCommand(addCmd)
 }
