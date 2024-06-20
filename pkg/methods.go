@@ -11,23 +11,38 @@ import (
 )
 
 // Attempts to call "go get" against an arg.
-func attemptGoGet(arg string) error {
+func AttemptGoGet(arg string) error {
 	cmd := exec.Command("go", "get", arg)
-	_, err := cmd.CombinedOutput()
+	b, err := cmd.CombinedOutput()
 	if err != nil {
 		msg := fmt.Sprintf("Could not combined output from 'go get' cmd: \n%s", err)
 		return errors.New(msg)
 	}
 
-	// output := string(b)
-	// log.Print(output)
+	output := string(b)
+	fmt.Printf("%s", output)
 
 	return nil
 }
 
+// Increments an item's score and updates the LastAccessed field to time.Now().Unix().
+func UpdateRecency(db *database.RummageDB, item *database.RummageDBItem) *database.RummageDBItem {
+	recency := &database.RummageDBItem{
+		Entry:        item.Entry,
+		Score:        item.RecalculateScore(),
+		LastAccessed: time.Now().Unix(),
+	}
+	item, err := db.UpdateItem(item.Entry, recency)
+	if err != nil {
+		log.Fatalf("Did not incrment item's score due to error: \n%s", err)
+	}
+
+	return item
+}
+
 // Attempts to call "go get" against an item and if it does not exist in the db, adds it.
 func GoGetAddedItem(db *database.RummageDB, arg string) *database.RummageDBItem {
-	if err := attemptGoGet(arg); err != nil {
+	if err := AttemptGoGet(arg); err != nil {
 		log.Print(err)
 		return nil
 	}
@@ -37,13 +52,7 @@ func GoGetAddedItem(db *database.RummageDB, arg string) *database.RummageDBItem 
 		log.Fatal(err) // if db can't be accessed
 	}
 
-	increment := database.RummageDBItem{
-		Entry:        added.Entry,
-		Score:        added.RecalculateScore(),
-		LastAccessed: time.Now().Unix(),
-	}
-
-	_, err = db.UpdateItem(added.Entry, &increment)
+	UpdateRecency(db, added)
 	return added
 }
 
@@ -55,23 +64,10 @@ func GoGetHighestScore(db *database.RummageDB, substr string) {
 		return
 	}
 
-	fmt.Printf("got here 0")
-	err := attemptGoGet(found.Entry)
+	err := AttemptGoGet(found.Entry)
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("got here 1")
 
-	increment := database.RummageDBItem{
-		Entry:        found.Entry,
-		Score:        found.RecalculateScore(),
-		LastAccessed: time.Now().Unix(),
-	}
-
-	fmt.Printf("got here 2")
-	_, err = db.UpdateItem(found.Entry, &increment)
-	if err != nil {
-		log.Printf("Did not incrment item's score due to error: \n%s", err)
-	}
-	fmt.Printf("got here 3")
+	UpdateRecency(db, found)
 }
