@@ -26,8 +26,9 @@ to quickly create a Cobra application.`,
 			panic(err)
 		}
 
-		// FIXME: package can be fetched and "got", but score does not increment
-		// FIXME: write test for methods
+		// TODO: consider...
+		// 1. If multiple items have same score, alphabetical order should be prioritized.
+		// 2. args should be distinguished between absolute package paths and a substr to search from
 		for _, arg := range args {
 			pkg.GoGetHighestScore(db, arg)
 		}
