@@ -73,7 +73,7 @@ func (r *RummageDB) AddItem(entry string) (*RummageDBItem, error) {
 	_, err := r.DB.Exec(`
         INSERT INTO items (entry, score, lastAccessed) 
         VALUES (?, ?, ?)`,
-		entry, 0.0, time.Now().Unix(),
+		entry, 1.0, time.Now().Unix(),
 	)
 	if err != nil {
 		msg := fmt.Sprintf("Issue occured when adding item to db: \n%s", err)
@@ -82,7 +82,7 @@ func (r *RummageDB) AddItem(entry string) (*RummageDBItem, error) {
 
 	item = RummageDBItem{
 		Entry:        entry,
-		Score:        0.0,
+		Score:        1.0,
 		LastAccessed: time.Now().Unix(),
 	}
 	return &item, nil
