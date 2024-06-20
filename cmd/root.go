@@ -25,6 +25,7 @@ var rootCmd = &cobra.Command{
 			hasSlash := utils.ParseForwardSlash(arg)
 			if hasSlash {
 				pkg.GoGetAddedItem(db, arg)
+				return
 			}
 			pkg.GoGetHighestScore(db, arg)
 		}
