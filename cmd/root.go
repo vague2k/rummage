@@ -2,9 +2,9 @@ package cmd
 
 import (
 	"os"
-	"os/exec"
 
 	"github.com/spf13/cobra"
+	"github.com/vague2k/rummage/pkg"
 	"github.com/vague2k/rummage/pkg/database"
 )
 
@@ -21,31 +21,15 @@ to quickly create a Cobra application.`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	Run: func(cmd *cobra.Command, args []string) {
-		// FIXME: cmd erros when arg is not a go package
-		// TODO: how do we handle multiple additions with enabled flags?
 		db, err := database.Init("")
 		if err != nil {
 			panic(err)
 		}
 
-		if len(args) == 1 {
-			var pkg string
-			found, exists := db.EntryWithHighestScore(args[0])
-			if !exists {
-				added, err := db.AddItem(args[0])
-				if err != nil {
-					panic(err)
-				}
-				pkg = added.Entry
-			} else {
-				pkg = found.Entry
-			}
-			cmd := exec.Command("go", "get", pkg)
-			err := cmd.Run()
-			if err != nil {
-				panic(err)
-			}
-			return
+		// FIXME: package can be fetched and "got", but score does not increment
+		// FIXME: write test for methods
+		for _, arg := range args {
+			pkg.GoGetHighestScore(db, arg)
 		}
 	},
 }
