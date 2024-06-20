@@ -21,6 +21,8 @@ to quickly create a Cobra application.`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	Run: func(cmd *cobra.Command, args []string) {
+		// FIXME: cmd erros when arg is not a go package
+		// TODO: how do we handle multiple additions with enabled flags?
 		db, err := database.Init("")
 		if err != nil {
 			panic(err)
@@ -38,7 +40,6 @@ to quickly create a Cobra application.`,
 			} else {
 				pkg = found.Entry
 			}
-			// FIXME: cmd erros when arg is not a go package
 			cmd := exec.Command("go", "get", pkg)
 			err := cmd.Run()
 			if err != nil {
