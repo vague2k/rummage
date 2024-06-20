@@ -60,7 +60,7 @@ func GoGetAddedItem(db *database.RummageDB, arg string) *database.RummageDBItem 
 func GoGetHighestScore(db *database.RummageDB, substr string) {
 	found, exists := db.EntryWithHighestScore(substr)
 	if !exists {
-		GoGetAddedItem(db, substr) // will error early if substr so happens to not be a go package
+		fmt.Printf("%s", "No entry was found that could match your argument.")
 		return
 	}
 

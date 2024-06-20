@@ -6,20 +6,13 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/vague2k/rummage/pkg"
 	"github.com/vague2k/rummage/pkg/database"
+	"github.com/vague2k/rummage/pkg/utils"
 )
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "rummage",
 	Short: "A zoxide inspired alternative to go get",
-	Long: `A longer description that spans multiple lines and likely contains
-examples and usage of using your application. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
 	Run: func(cmd *cobra.Command, args []string) {
 		db, err := database.Init("")
 		if err != nil {
@@ -28,8 +21,11 @@ to quickly create a Cobra application.`,
 
 		// TODO: consider...
 		// 1. If multiple items have same score, alphabetical order should be prioritized.
-		// 2. args should be distinguished between absolute package paths and a substr to search from
 		for _, arg := range args {
+			hasSlash := utils.ParseForwardSlash(arg)
+			if hasSlash {
+				pkg.GoGetAddedItem(db, arg)
+			}
 			pkg.GoGetHighestScore(db, arg)
 		}
 	},
