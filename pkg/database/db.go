@@ -60,7 +60,7 @@ func Init(path string) (*RummageDB, error) {
 }
 
 // Adds an item to the db and returns a pointer to the item that was just added.
-// Newly added items are given a default score of 1.0.
+// Newly added items are given a default score of 0.0.
 //
 // If the item's entry already exists, AddItem() returns the item
 func (r *RummageDB) AddItem(entry string) (*RummageDBItem, error) {
@@ -73,7 +73,7 @@ func (r *RummageDB) AddItem(entry string) (*RummageDBItem, error) {
 	_, err := r.DB.Exec(`
         INSERT INTO items (entry, score, lastAccessed) 
         VALUES (?, ?, ?)`,
-		entry, 1.0, time.Now().Unix(),
+		entry, 0.0, time.Now().Unix(),
 	)
 	if err != nil {
 		msg := fmt.Sprintf("Issue occured when adding item to db: \n%s", err)
@@ -82,7 +82,7 @@ func (r *RummageDB) AddItem(entry string) (*RummageDBItem, error) {
 
 	item = RummageDBItem{
 		Entry:        entry,
-		Score:        1.0,
+		Score:        0.0,
 		LastAccessed: time.Now().Unix(),
 	}
 	return &item, nil
@@ -186,9 +186,12 @@ func (r *RummageDB) EntryWithHighestScore(substr string) (*RummageDBItem, bool) 
 		log.Fatal(err)
 	}
 
+	if len(items) == 1 {
+		return &items[0], true
+	}
+
 	var curr float64
 	var highestMatch *RummageDBItem
-
 	for _, item := range items {
 		if strings.Contains(item.Entry, substr) {
 			if item.Score > curr {

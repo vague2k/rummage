@@ -73,8 +73,8 @@ func TestAddItem(t *testing.T) {
 		switch true {
 		case entry != "content":
 			t.Errorf("Entry was %s, expected %s", entry, "content")
-		case score != 1.0:
-			t.Errorf("Score was %f, expected %f", score, 1.0)
+		case score != 0.0:
+			t.Errorf("Score was %f, expected %f", score, 0.0)
 		case lastAccessed != time.Now().Unix():
 			t.Errorf("Created was %d, expected %v", lastAccessed, time.Now().Unix())
 		}
@@ -134,8 +134,8 @@ func TestSelectItem(t *testing.T) {
 		if item.Entry != "firstitem" {
 			t.Errorf("Expected entry to be %s, but got %s.", "firstitem", item.Entry)
 		}
-		if item.Score != 1.0 {
-			t.Errorf("Expected entry to be %f, but got %f.", 1.0, item.Score)
+		if item.Score != 0.0 {
+			t.Errorf("Expected entry to be %f, but got %f.", 0.0, item.Score)
 		}
 	})
 
@@ -310,9 +310,9 @@ func TestEntryWithHighestScore(t *testing.T) {
 		}
 
 		got, _ := r.EntryWithHighestScore("it")
-		expected := 1.0
+		expected := 0.0
 
-		if got.Score != 1.0 {
+		if got.Score != 0.0 {
 			t.Errorf("Expected highest score to be %f, but got %f", expected, got.Score)
 			t.Log("Got item: ", got)
 		}
