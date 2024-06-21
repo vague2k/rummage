@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -46,6 +45,6 @@ func createTable(db *sql.DB) {
     `)
 	if err != nil {
 		msg := fmt.Sprintf("Could not create 'items' table in rummage db: \n%s", err)
-		log.Fatal(msg)
+		logger.Fatal(msg)
 	}
 }
