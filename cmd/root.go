@@ -22,10 +22,9 @@ var rootCmd = &cobra.Command{
 			logger.Fatal(err)
 		}
 
-		// TODO: consider...
-		// 1. If multiple items have same score, alphabetical order should be prioritized.
 		for _, arg := range args {
 			hasSlash := utils.ParseForwardSlash(arg)
+			// can safely assume if a "/" is parsed from the arg, it's more than likely an absolute pkg path
 			if hasSlash {
 				pkg.GoGetAddedItem(db, arg)
 				return
