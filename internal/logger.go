@@ -84,7 +84,10 @@ func (l *GeneralRummageLoggerImpl) Fatal(v ...any) {
 // General log that writes input to the io.writer
 func (l *GeneralRummageLoggerImpl) log(severity LogLevel, v ...any) {
 	b := []byte(l.Formatter(severity, v...))
-	l.Output.Write(b)
+	_, err := l.Output.Write(b)
+	if err != nil {
+		panic(err)
+	}
 }
 
 // RummageLogger's default formatter
