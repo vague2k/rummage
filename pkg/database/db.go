@@ -4,14 +4,16 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/vague2k/rummage/internal"
 )
+
+var logger = internal.NewLogger(nil, os.Stdout)
 
 // A database wrapper for Rummage that pertains to rummage's actions
 type RummageDB struct {
@@ -183,7 +185,7 @@ func (r *RummageDB) ListItems() ([]RummageDBItem, error) {
 func (r *RummageDB) EntryWithHighestScore(substr string) (*RummageDBItem, bool) {
 	items, err := r.ListItems()
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatal(err)
 	}
 
 	if len(items) == 1 {
