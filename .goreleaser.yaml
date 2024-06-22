@@ -1,0 +1,26 @@
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+
+env:
+  - CGO_ENABLED=0
+
+builds:
+  - main: ./main.go
+    binary: smv
+    goos:
+      - windows
+      - darwin
+      - linux
+    goarch:
+      - amd64
+      - arm
+      - arm64
+    flags:
+      - -trimpath
+
+checksum:
+  name_template: "rummage_checksum.txt"
+
