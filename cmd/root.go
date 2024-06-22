@@ -14,8 +14,9 @@ var logger = internal.NewLogger(nil, os.Stdout)
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "rummage",
-	Short: "A zoxide inspired alternative to go get",
+	Use:     "rummage",
+	Version: LatestVersion(),
+	Short:   "A zoxide inspired alternative to go get",
 	Run: func(cmd *cobra.Command, args []string) {
 		db, err := database.Init("")
 		if err != nil {
