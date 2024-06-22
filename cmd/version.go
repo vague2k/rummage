@@ -13,7 +13,7 @@ type Release struct {
 
 // Gets the latest release information from the github repository
 func LatestVersion() string {
-	url := fmt.Sprint("https://api.github.com/repos/vague2k/rummage/releases/latest")
+	url := "https://api.github.com/repos/vague2k/rummage/releases/latest"
 	resp, err := http.Get(url)
 	if err != nil {
 		logger.Fatal("Error occured fetching the latest release")
