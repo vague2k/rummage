@@ -29,7 +29,7 @@ var quickstartCmd = &cobra.Command{
 			pkgs []string
 			seen = make(map[string]bool)
 		)
-		filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
+		err = filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
 			if err != nil {
 				logger.Err(err)
 				return nil
@@ -57,6 +57,9 @@ var quickstartCmd = &cobra.Command{
 			pkgs = append(pkgs, pkgNoVerNum[0])
 			return nil
 		})
+		if err != nil {
+			logger.Fatal("Could not walk dirs: \n", err)
+		}
 
 		items, err := db.AddMultiItems(pkgs...)
 		if err != nil {

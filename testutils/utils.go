@@ -37,14 +37,14 @@ func AssertNotNil(t *testing.T, got any) {
 }
 
 func AssertTrue(t *testing.T, got bool) {
-	if got == false {
+	if !got {
 		t.Errorf("Expected %v, but got %v.", true, got)
 	}
 	t.Log(true, got)
 }
 
 func AssertFalse(t *testing.T, got bool) {
-	if got == true {
+	if got {
 		t.Errorf("Expected %v, but got %v.", false, got)
 	}
 	t.Log(false, got)
