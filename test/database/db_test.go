@@ -7,57 +7,40 @@ import (
 	"time"
 
 	"github.com/vague2k/rummage/pkg/database"
+	"github.com/vague2k/rummage/testutils"
 )
 
 func TestAccess(t *testing.T) {
 	t.Run("Initializing db does not error", func(t *testing.T) {
-		tmp := t.TempDir()
-		r, err := database.Init(tmp)
-		if err != nil {
-			t.Errorf("Could not open db: \n%s", err)
-		}
+		r := testutils.DbInstance(t)
 		defer r.DB.Close()
 	})
 	t.Run("db returns correct dir and filepath", func(t *testing.T) {
 		tmp := t.TempDir()
 		got, err := database.Init(tmp)
-		if err != nil {
-			t.Errorf("Could not open db: \n%s", err)
-		}
+		testutils.CheckErr(t, err)
 		defer got.DB.Close()
 
 		expectedDir := filepath.Join(tmp, "rummage")
 		expectedDBFile := filepath.Join(expectedDir, "rummage.db")
 
-		switch true {
-		case got.Dir != expectedDir:
-			t.Errorf("Got %s, expected %s", got.Dir, expectedDir)
-		case got.FilePath != expectedDBFile:
-			t.Errorf("Got %s, expected %s", got.FilePath, expectedDBFile)
-		}
+		testutils.AssertEquals(t, expectedDir, got.Dir)
+		testutils.AssertEquals(t, expectedDBFile, got.FilePath)
 	})
 }
 
 func TestAddItem(t *testing.T) {
-	tmp := t.TempDir()
-	r, err := database.Init(tmp)
-	if err != nil {
-		t.Errorf("Could not open db: \n%s", err)
-	}
+	r := testutils.DbInstance(t)
 	defer r.DB.Close()
 
 	t.Run("Can add item to db", func(t *testing.T) {
 		_, err := r.AddItem("content")
-		if err != nil {
-			t.Errorf("Issue occured adding item to db: \n%s", err)
-		}
+		testutils.CheckErr(t, err)
 	})
 
 	t.Run("Assert added item has correct values", func(t *testing.T) {
 		rows, err := r.DB.Query("SELECT * FROM items WHERE entry = 'content';")
-		if err != nil {
-			t.Errorf("Issue occured trying to select recently added item from db: \n%s", err)
-		}
+		testutils.CheckErr(t, err)
 
 		var entry string
 		var score float64
@@ -65,42 +48,27 @@ func TestAddItem(t *testing.T) {
 
 		for rows.Next() {
 			err := rows.Scan(&entry, &score, &lastAccessed)
-			if err != nil {
-				t.Errorf("Error occured when trying to scan rows: \n%s", err)
-			}
+			testutils.CheckErr(t, err)
 		}
 
-		switch true {
-		case entry != "content":
-			t.Errorf("Entry was %s, expected %s", entry, "content")
-		case score != 1.0:
-			t.Errorf("Score was %f, expected %f", score, 1.0)
-		case lastAccessed != time.Now().Unix():
-			t.Errorf("Created was %d, expected %v", lastAccessed, time.Now().Unix())
-		}
+		testutils.AssertEquals(t, entry, "content")
+		testutils.AssertEquals(t, score, 1.0)
+		testutils.AssertEquals(t, lastAccessed, time.Now().Unix())
 	})
 }
 
 func TestAddMultiItems(t *testing.T) {
-	tmp := t.TempDir()
-	r, err := database.Init(tmp)
-	if err != nil {
-		t.Errorf("Could not open db: \n%s", err)
-	}
+	r := testutils.DbInstance(t)
 	defer r.DB.Close()
 
 	items, err := r.AddMultiItems("item1", "item2", "item3")
-	if err != nil {
-		t.Errorf("Issue adding item to db: \n%s", err)
-	}
+	testutils.CheckErr(t, err)
 
 	t.Run("Returns expected amount of items", func(t *testing.T) {
 		got := len(items)
 		expected := 3
 
-		if got != expected {
-			t.Errorf("Expected method to add %d items, but get a slice of %d instead", expected, got)
-		}
+		testutils.AssertEquals(t, expected, got)
 	})
 
 	t.Run("Assert each item is correctly typed", func(t *testing.T) {
@@ -114,41 +82,27 @@ func TestAddMultiItems(t *testing.T) {
 }
 
 func TestSelectItem(t *testing.T) {
-	tmp := t.TempDir()
-	r, err := database.Init(tmp)
-	if err != nil {
-		t.Errorf("Could not open db: \n%s", err)
-	}
+	r := testutils.DbInstance(t)
 	defer r.DB.Close()
 
-	_, err = r.AddItem("firstitem")
-	if err != nil {
-		t.Errorf("Issue adding item to db: \n%s", err)
-	}
+	_, err := r.AddItem("firstitem")
+	testutils.CheckErr(t, err)
 
 	// checking the LastAccessed field is not neccessarily important for this test
 	t.Run("Assert the added item exists", func(t *testing.T) {
 		item, _ := r.SelectItem("firstitem")
 
 		// checking the LastAccessed field is not neccessarily important for this check
-		if item.Entry != "firstitem" {
-			t.Errorf("Expected entry to be %s, but got %s.", "firstitem", item.Entry)
-		}
-		if item.Score != 1.0 {
-			t.Errorf("Expected entry to be %f, but got %f.", 1.0, item.Score)
-		}
+		testutils.AssertEquals(t, item.Entry, "firstitem")
+		testutils.AssertEquals(t, item.Score, 1.0)
 	})
 
 	t.Run("Assert added item is the only item in the db after attempting to add duplicate", func(t *testing.T) {
 		_, err = r.AddItem("firstitem")
-		if err != nil {
-			t.Errorf("Issue adding item to db: \n%s", err)
-		}
+		testutils.CheckErr(t, err)
 
 		rows, err := r.DB.Query("SELECT entry FROM items WHERE entry = ?", "firstitem")
-		if err != nil {
-			t.Errorf("Issue querying item from db: \n%s", err)
-		}
+		testutils.CheckErr(t, err)
 		defer rows.Close()
 
 		count := 0
@@ -172,17 +126,11 @@ func TestSelectItem(t *testing.T) {
 }
 
 func TestUpdatedItem(t *testing.T) {
-	tmp := t.TempDir()
-	r, err := database.Init(tmp)
-	if err != nil {
-		t.Errorf("Could not open db: \n%s", err)
-	}
+	r := testutils.DbInstance(t)
 	defer r.DB.Close()
 
 	originalItem, err := r.AddItem("firstitem")
-	if err != nil {
-		t.Errorf("Issue adding item to db: \n%s", err)
-	}
+	testutils.CheckErr(t, err)
 
 	update := &database.RummageDBItem{
 		Entry:        "updatedfirstitem",
@@ -192,62 +140,42 @@ func TestUpdatedItem(t *testing.T) {
 
 	t.Run("Assert original item is actually updated", func(t *testing.T) {
 		_, err := r.UpdateItem("firstitem", update)
-		if err != nil {
-			t.Errorf("Issue updating db item: \n%s", err)
-		}
+		testutils.CheckErr(t, err)
 
 		_, err = r.DB.Query(`
             SELECT entry FROM items 
             WHERE score = ?`,
 			2.0,
 		)
-		if err != nil {
-			t.Errorf("Issue querying item from db: \n%s", err)
-		}
+		testutils.CheckErr(t, err)
 	})
 
 	t.Run("Returns pointer to updated item", func(t *testing.T) {
 		updateItem, err := r.UpdateItem("firstitem", update)
-		if err != nil {
-			t.Errorf("Issue updating db item: \n%s", err)
-		}
+		testutils.CheckErr(t, err)
 
-		switch true {
-		case originalItem.Entry != updateItem.Entry:
-			t.Errorf("Original entry and the updated entry are not the same, expected %s, but got %s", originalItem.Entry, update.Entry)
-		case originalItem.Score == updateItem.Score:
-			t.Errorf("Original score %f and the updated score are the same, expected %f", originalItem.Score, update.Score)
-		}
+		testutils.AssertEquals(t, originalItem.Entry, updateItem.Entry)
+		testutils.AssertNotEquals(t, originalItem.Score, updateItem.Score)
 	})
 }
 
 func TestListItems(t *testing.T) {
-	tmp := t.TempDir()
-	r, err := database.Init(tmp)
-	if err != nil {
-		t.Errorf("Could not open db: \n%s", err)
-	}
+	r := testutils.DbInstance(t)
 	defer r.DB.Close()
 
 	for i := range 5 {
-		_, err = r.AddItem(fmt.Sprintf("item%d", i))
-		if err != nil {
-			t.Errorf("Issue adding item to db: \n%s", err)
-		}
+		_, err := r.AddItem(fmt.Sprintf("item%d", i))
+		testutils.CheckErr(t, err)
 	}
 
 	items, err := r.ListItems()
-	if err != nil {
-		t.Errorf("Issue getting items from db: \n%s", err)
-	}
+	testutils.CheckErr(t, err)
 
 	t.Run("Returns expected amount of items", func(t *testing.T) {
 		expected := 5
 		got := len(items)
 
-		if got != expected {
-			t.Errorf("Expected %d, but got %d items", expected, got)
-		}
+		testutils.AssertEquals(t, expected, got)
 	})
 
 	t.Run("Assert each item is correctly typed", func(t *testing.T) {
@@ -262,19 +190,13 @@ func TestListItems(t *testing.T) {
 
 func TestEntryWithHighestScore(t *testing.T) {
 	t.Run("Returns highest score if multiple entries are found", func(t *testing.T) {
-		tmp := t.TempDir()
-		r, err := database.Init(tmp)
-		if err != nil {
-			t.Errorf("Could not open db: \n%s", err)
-		}
+		r := testutils.DbInstance(t)
 		defer r.DB.Close()
 
 		for i := range 5 {
 			name := fmt.Sprintf("item%d", i)
 			_, err := r.AddItem(name)
-			if err != nil {
-				t.Errorf("Issue adding item to db: \n%s", err)
-			}
+			testutils.CheckErr(t, err)
 
 			incrementedItemScore := database.RummageDBItem{
 				Entry:        name,
@@ -283,58 +205,57 @@ func TestEntryWithHighestScore(t *testing.T) {
 			}
 
 			_, err = r.UpdateItem(name, &incrementedItemScore)
-			if err != nil {
-				t.Errorf("Issue updating item: \n%s", err)
-			}
+			testutils.CheckErr(t, err)
+
 		}
 		got, _ := r.EntryWithHighestScore("it")
 		expected := 4.0
 
-		if got.Score != 4.0 {
-			t.Errorf("Expected highest score to be %f, but got %f", expected, got.Score)
-			t.Log("Got item: ", got)
-		}
+		testutils.AssertEquals(t, expected, got.Score)
 	})
 
 	t.Run("Returns 1 item if it's the only item in the db", func(t *testing.T) {
-		tmp := t.TempDir()
-		r, err := database.Init(tmp)
-		if err != nil {
-			t.Errorf("Could not open db: \n%s", err)
-		}
+		r := testutils.DbInstance(t)
 		defer r.DB.Close()
 
-		_, err = r.AddItem("item")
-		if err != nil {
-			t.Errorf("Issue adding item to db: \n%s", err)
-		}
+		_, err := r.AddItem("item")
+		testutils.CheckErr(t, err)
 
 		got, _ := r.EntryWithHighestScore("it")
 		expected := 1.0
 
-		if got.Score != 1.0 {
-			t.Errorf("Expected highest score to be %f, but got %f", expected, got.Score)
-			t.Log("Got item: ", got)
-		}
+		testutils.AssertEquals(t, expected, got.Score)
 	})
 
 	t.Run("Returns false if no match was found", func(t *testing.T) {
-		tmp := t.TempDir()
-		r, err := database.Init(tmp)
-		if err != nil {
-			t.Errorf("Could not open db: \n%s", err)
-		}
+		r := testutils.DbInstance(t)
 		defer r.DB.Close()
 
 		got, gotExists := r.EntryWithHighestScore("it")
 		expectedExists := false
 
-		switch true {
-		case got != nil:
-			t.Errorf("Expected return value to be nil, but got %v instead.", nil)
-		case gotExists != expectedExists:
-			t.Errorf("Expected boolean value to be %v, but got %v instead.", gotExists, expectedExists)
-		}
-		t.Log("Got item: ", got)
+		testutils.AssertNotNil(t, got)
+		testutils.AssertEquals(t, expectedExists, gotExists)
+	})
+}
+
+func TestDeleteItem(t *testing.T) {
+	r := testutils.DbInstance(t)
+	defer r.DB.Close()
+
+	_, err := r.AddItem("item")
+	testutils.CheckErr(t, err)
+
+	t.Run("Assert item exists before deletion", func(t *testing.T) {
+		got, _ := r.SelectItem("item")
+		testutils.AssertNotNil(t, got)
+	})
+
+	t.Run("Assert item was deleted", func(t *testing.T) {
+		_, err := r.DeleteItem("item")
+		testutils.CheckErr(t, err)
+
+		_, got := r.SelectItem("item")
+		testutils.AssertFalse(t, got)
 	})
 }

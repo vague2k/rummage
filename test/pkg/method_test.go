@@ -5,6 +5,7 @@ import (
 
 	"github.com/vague2k/rummage/pkg"
 	"github.com/vague2k/rummage/pkg/database"
+	"github.com/vague2k/rummage/testutils"
 )
 
 func TestAttemptGoGet(t *testing.T) {
@@ -39,9 +40,8 @@ func TestUpdateRecency(t *testing.T) {
 	}
 	t.Run("Properly increments score", func(t *testing.T) {
 		got := pkg.UpdateRecency(r, item)
+		expected := 4.0
 
-		if got.Score != 4.0 {
-			t.Errorf("Expected %f, but got %f", 4.0, got.Score)
-		}
+		testutils.AssertEquals(t, expected, got.Score)
 	})
 }
