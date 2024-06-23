@@ -45,5 +45,8 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.AddCommand(quickstartCmd)
+	rootCmd.AddCommand(
+		quickstartCmd,
+		removeCmd,
+	)
 }

@@ -223,3 +223,35 @@ func (r *RummageDB) AddMultiItems(entries ...string) ([]RummageDBItem, error) {
 
 	return slice, nil
 }
+
+// Deletes an item from the database, and returns a pointer to the item that was just deleted.
+//
+// Item not existing is treated as an error.
+func (r *RummageDB) DeleteItem(entry string) (*RummageDBItem, error) {
+	item, exists := r.SelectItem(entry)
+	if !exists {
+		msg := fmt.Sprintf("Can't delete entry. '%s' does not exist", entry)
+		return nil, errors.New(msg)
+	}
+	_, err := r.DB.Exec(`
+        DELETE FROM items
+        WHERE entry = ?
+        `,
+		entry,
+	)
+	if err != nil {
+		msg := fmt.Sprintf("Issue deleting db item: \n%s", err)
+		return nil, errors.New(msg)
+	}
+	return item, nil
+}
+
+// Deletes all items from the database, should be used with a yes/no prompt of some sort.
+func (r *RummageDB) DeleteAllItems() error {
+	_, err := r.DB.Exec("DELETE FROM items")
+	if err != nil {
+		msg := fmt.Sprintf("Issue deleting db item: \n%s", err)
+		return errors.New(msg)
+	}
+	return nil
+}
