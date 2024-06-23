@@ -11,6 +11,7 @@ import (
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/vague2k/rummage/internal"
+	"github.com/vague2k/rummage/utils"
 )
 
 var logger = internal.NewLogger(nil, os.Stdout)
@@ -27,15 +28,11 @@ type RummageDB struct {
 // Init() also makes sure the "items" table exists.
 func Init(path string) (*RummageDB, error) {
 	if path == "" {
-		dataDir, err := dataDir()
-		if err != nil {
-			return nil, fmt.Errorf("%s", err)
-		}
+		dataDir := utils.UserDataDir()
 		path = dataDir
 	}
 
 	// make sure the path to the db exists
-	// TODO: may need to rethink this if we want to use a user defined config file
 	dir := filepath.Join(path, "rummage")
 	dbFile := filepath.Join(dir, "rummage.db")
 
@@ -50,7 +47,7 @@ func Init(path string) (*RummageDB, error) {
 		msg := fmt.Sprintf("Could not init rummage db: \n%s", err)
 		return nil, errors.New(msg)
 	}
-	createTable(database) // create the items table if it doesn't exist
+	utils.CreateDBTable(database) // create the items table if it doesn't exist
 
 	instance := &RummageDB{
 		DB:       database,
@@ -62,7 +59,7 @@ func Init(path string) (*RummageDB, error) {
 }
 
 // Adds an item to the db and returns a pointer to the item that was just added.
-// Newly added items are given a default score of 0.0.
+// Newly added items are given a default score of 1.0.
 //
 // If the item's entry already exists, AddItem() returns the item
 func (r *RummageDB) AddItem(entry string) (*RummageDBItem, error) {
