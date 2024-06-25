@@ -1,6 +1,9 @@
 package testutils
 
 import (
+	"fmt"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/vague2k/rummage/pkg/database"
@@ -54,4 +57,20 @@ func CheckErr(t *testing.T, err error) {
 	if err != nil {
 		t.Error(err)
 	}
+}
+
+func MockPkgModGHDir(dir string) error {
+	for i := range 10 {
+		parentDir := filepath.Join(dir, fmt.Sprintf("dir%d", i))
+		if err := os.Mkdir(parentDir, os.ModePerm); err != nil {
+			return err
+		}
+
+		childDir := filepath.Join(parentDir, fmt.Sprintf("child@%d.0.0", i))
+		if err := os.Mkdir(childDir, os.ModePerm); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
