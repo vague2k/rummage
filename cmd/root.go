@@ -36,5 +36,6 @@ func init() {
 		populateCmd,
 		removeCmd,
 		getCmd,
+		addCmd,
 	)
 }
