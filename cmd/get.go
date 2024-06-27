@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"strings"
+
 	"github.com/spf13/cobra"
 	"github.com/vague2k/rummage/cmd/services"
 	"github.com/vague2k/rummage/pkg/database"
@@ -17,6 +19,7 @@ var getCmd = &cobra.Command{
 		}
 
 		for _, arg := range args {
+			arg = strings.ToLower(arg)
 			hasSlash, _ := utils.ParseForwardSlash(arg)
 			// can safely assume if a "/" is parsed from the arg, it's more than likely an absolute pkg path
 			if hasSlash {
