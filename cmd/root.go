@@ -37,5 +37,6 @@ func init() {
 		removeCmd,
 		getCmd,
 		addCmd,
+		queryCmd,
 	)
 }
