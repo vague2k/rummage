@@ -1,14 +1,38 @@
-# Rummage
+<h1 align="center">Rummage</h1>
+<h3 align="center">A smart wrapper for "go get"</h3>
 
-A [zoxide](https://github.com/ajeetdsouza/zoxide) inspired alternative to `go get`.
+![rummage](https://github.com/vague2k/huez.nvim/assets/121782036/b9a85105-763e-4312-836b-eddb7b53408b)
 
-https://github.com/vague2k/rummage/assets/121782036/1b3cdef3-6522-42ba-bc9f-a9279326cf58
+## Installation
 
-# Installation
-```go 
+```go
 go install github.com/vague2k/rummage
 ```
 
+## Alias
+
+If you'd like a shorthand for the get command, you put this in your .zshrc/.bashrc file
+
+```
+alias rum="rummage get"
+```
+
+## Usage
+
+Before using rummage regularly, It's reccommended that you use
+
+```
+rummage populate
+```
+
+This will get the database up to speed with the third party packages you have already installed.
+
+| rummage [COMMAND] | Description                                                              |
+| ----------------- | ------------------------------------------------------------------------ |
+| `add`             | Add a package to the database.                                           |
+| `remove`          | Removes a package from the database.                                     |
+| `get`             | Gets a go package from the database, and increase its recency score.     |
+| `populate`        | Add already installed packages to the database to quickstart your usage. |
 
 ## 📋 Contributing
 

@@ -5,9 +5,6 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/vague2k/rummage/internal"
-	"github.com/vague2k/rummage/pkg"
-	"github.com/vague2k/rummage/pkg/database"
-	"github.com/vague2k/rummage/utils"
 )
 
 var logger = internal.NewLogger(nil, os.Stdout)
@@ -15,22 +12,12 @@ var logger = internal.NewLogger(nil, os.Stdout)
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:     "rummage",
-	Version: LatestVersion(),
+	Version: "2.0.0-alpha",
 	Short:   "A zoxide inspired alternative to go get",
 	Run: func(cmd *cobra.Command, args []string) {
-		db, err := database.Init("")
+		err := cmd.Help()
 		if err != nil {
 			logger.Fatal(err)
-		}
-
-		for _, arg := range args {
-			hasSlash, _ := utils.ParseForwardSlash(arg)
-			// can safely assume if a "/" is parsed from the arg, it's more than likely an absolute pkg path
-			if hasSlash {
-				pkg.GoGetAddedItem(db, arg)
-				return
-			}
-			pkg.GoGetHighestScore(db, arg)
 		}
 	},
 }
@@ -46,7 +33,10 @@ func Execute() {
 
 func init() {
 	rootCmd.AddCommand(
-		quickstartCmd,
+		populateCmd,
 		removeCmd,
+		getCmd,
+		addCmd,
+		queryCmd,
 	)
 }
