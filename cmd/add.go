@@ -17,6 +17,5 @@ var addCmd = &cobra.Command{
 		if _, err := db.AddMultiItems(args...); err != nil {
 			logger.Fatal(err)
 		}
-		return
 	},
 }
