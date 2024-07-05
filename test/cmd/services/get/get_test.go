@@ -3,7 +3,7 @@ package services_test
 import (
 	"testing"
 
-	s "github.com/vague2k/rummage/cmd/services"
+	s "github.com/vague2k/rummage/cmd/services/get"
 	"github.com/vague2k/rummage/testutils"
 )
 

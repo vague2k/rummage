@@ -2,8 +2,8 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
+	s "github.com/vague2k/rummage/cmd/services/remove"
 	"github.com/vague2k/rummage/pkg/database"
-	"github.com/vague2k/rummage/pkg/ui"
 )
 
 var removeCmd = &cobra.Command{
@@ -20,15 +20,7 @@ var removeCmd = &cobra.Command{
 		}
 
 		if flagDeleteAll {
-			choice := ui.YesNoPrompt("Are you sure you want to delete all items from the database?", false)
-			if !choice {
-				return
-			}
-			err := db.DeleteAllItems()
-			if err != nil {
-				logger.Fatal(err)
-			}
-			logger.Warn("Deleted ALL from the database...")
+			s.PromptDeleteAll(db)
 		}
 
 		for _, arg := range args {

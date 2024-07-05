@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	s "github.com/vague2k/rummage/cmd/services"
+	s "github.com/vague2k/rummage/cmd/services/populate"
 	"github.com/vague2k/rummage/testutils"
 )
 

@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 
 	"github.com/spf13/cobra"
-	"github.com/vague2k/rummage/cmd/services"
+	s "github.com/vague2k/rummage/cmd/services/populate"
 	"github.com/vague2k/rummage/pkg/database"
 	"github.com/vague2k/rummage/utils"
 )
@@ -24,7 +24,7 @@ var populateCmd = &cobra.Command{
 		GOPATH := utils.UserGoPath()
 		dir := filepath.Join(GOPATH, "pkg", "mod", "github.com")
 
-		pkgs := services.WalkAndParsePackages(dir)
+		pkgs := s.WalkAndParsePackages(dir)
 
 		items, err := db.AddMultiItems(pkgs...)
 		if err != nil {
