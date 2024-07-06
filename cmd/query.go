@@ -1,34 +1,36 @@
 package cmd
 
 import (
-	"fmt"
-	"strings"
-
 	"github.com/spf13/cobra"
+	s "github.com/vague2k/rummage/cmd/services/query"
 	"github.com/vague2k/rummage/pkg/database"
+	cmdUtils "github.com/vague2k/rummage/utils/cmd"
 )
 
 var queryCmd = &cobra.Command{
 	Use:   "query",
 	Short: "Query the database to find a record's details",
 	Run: func(cmd *cobra.Command, args []string) {
+		flags := cmdUtils.RegisterBoolFlags(cmd, "exact")
+
 		db, err := database.Init("")
 		if err != nil {
 			logger.Fatal(err)
 		}
-		for _, arg := range args {
-			arg = strings.ToLower(arg)
-			found, exists := db.EntryWithHighestScore(arg)
-			if !exists {
-				logger.Warn("No entry was found that could match your query.")
-				return
+
+		switch true {
+		case flags["exact"]:
+			for _, arg := range args {
+				s.FindExactMatch(db, arg)
 			}
-			info := fmt.Sprintf("Entry: %s\nScore: %f\nLastAccessed: %d\n",
-				found.Entry,
-				found.Score,
-				found.LastAccessed,
-			)
-			logger.Info("found top match for ", arg, "\n", info)
+		default:
+			for _, arg := range args {
+				s.FindHighestScore(db, arg)
+			}
 		}
 	},
+}
+
+func init() {
+	queryCmd.Flags().BoolP("exact", "e", false, "Query using an exact substring match instead of using highest score.")
 }
