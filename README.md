@@ -5,7 +5,7 @@
 
 ## Installation
 
-```go
+```
 go install github.com/vague2k/rummage
 ```
 
@@ -33,6 +33,7 @@ This will get the database up to speed with the third party packages you have al
 | `remove`          | Removes a package from the database.                                     |
 | `get`             | Gets a go package from the database, and increase its recency score.     |
 | `populate`        | Add already installed packages to the database to quickstart your usage. |
+| `query`           | Query the database to find a package.                                    |
 
 ## 📋 Contributing
 
