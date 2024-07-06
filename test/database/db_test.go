@@ -259,3 +259,22 @@ func TestDeleteItem(t *testing.T) {
 		testutils.AssertFalse(t, got)
 	})
 }
+
+func TestFindExactMatch(t *testing.T) {
+	r := testutils.DbInstance(t)
+	defer r.DB.Close()
+
+	items, err := r.AddMultiItems("thisitemexistsfirst", "seconditem", "whathappenedhere")
+	testutils.CheckErr(t, err)
+
+	t.Run("Assert items exist before finding exact match", func(t *testing.T) {
+		for _, item := range items {
+			testutils.AssertNotNil(t, item)
+		}
+	})
+
+	t.Run("Assert first item found regardless of score", func(t *testing.T) {
+		found, _ := r.FindExactMatch("it")
+		testutils.AssertEquals(t, "thisitemexistsfirst", found.Entry)
+	})
+}

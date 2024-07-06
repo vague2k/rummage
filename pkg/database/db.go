@@ -11,7 +11,7 @@ import (
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/vague2k/rummage/internal"
-	"github.com/vague2k/rummage/utils"
+	u "github.com/vague2k/rummage/utils/db"
 )
 
 var logger = internal.NewLogger(nil, os.Stdout)
@@ -28,7 +28,7 @@ type RummageDB struct {
 // Init() also makes sure the "items" table exists.
 func Init(path string) (*RummageDB, error) {
 	if path == "" {
-		dataDir := utils.UserDataDir()
+		dataDir := u.UserDataDir()
 		path = dataDir
 	}
 
@@ -47,7 +47,7 @@ func Init(path string) (*RummageDB, error) {
 		msg := fmt.Sprintf("Could not init rummage db: \n%s", err)
 		return nil, errors.New(msg)
 	}
-	utils.CreateDBTable(database) // create the items table if it doesn't exist
+	u.CreateDBTable(database) // create the items table if it doesn't exist
 
 	instance := &RummageDB{
 		DB:       database,
@@ -205,6 +205,26 @@ func (r *RummageDB) EntryWithHighestScore(substr string) (*RummageDBItem, bool) 
 	}
 
 	return highestMatch, true
+}
+
+// Finds a matching entry against a substr for all items in the database.
+//
+// If the item does not exist, returns nil, false
+func (r *RummageDB) FindExactMatch(substr string) (*RummageDBItem, bool) {
+	items, err := r.ListItems()
+	if err != nil {
+		logger.Fatal(err)
+	}
+
+	var exactMatch RummageDBItem
+	for _, item := range items {
+		if strings.Contains(item.Entry, substr) {
+			exactMatch = item
+			break
+		}
+	}
+
+	return &exactMatch, true
 }
 
 // Adds multiple items to the db and returns []RummageDBItem
