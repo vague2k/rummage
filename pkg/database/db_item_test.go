@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/vague2k/rummage/pkg/database"
-	"github.com/vague2k/rummage/testutils"
 )
 
 const (
@@ -28,7 +28,7 @@ func TestRecalculateScore(t *testing.T) {
 
 		expected := 4.0
 		got := updated.RecalculateScore()
-		testutils.AssertEquals(t, expected, got)
+		assert.Equal(t, expected, got)
 	})
 	t.Run("Calculate score within the day", func(t *testing.T) {
 		offset = HOUR
@@ -40,7 +40,7 @@ func TestRecalculateScore(t *testing.T) {
 
 		expected := 2.0
 		got := updated.RecalculateScore()
-		testutils.AssertEquals(t, expected, got)
+		assert.Equal(t, expected, got)
 	})
 	t.Run("Calculate score within the week", func(t *testing.T) {
 		offset = DAY
@@ -52,7 +52,7 @@ func TestRecalculateScore(t *testing.T) {
 
 		expected := 0.5
 		got := updated.RecalculateScore()
-		testutils.AssertEquals(t, expected, got)
+		assert.Equal(t, expected, got)
 	})
 	t.Run("Calculate score past a week", func(t *testing.T) {
 		offset = WEEK + WEEK
@@ -64,6 +64,6 @@ func TestRecalculateScore(t *testing.T) {
 
 		expected := 0.25
 		got := updated.RecalculateScore()
-		testutils.AssertEquals(t, expected, got)
+		assert.Equal(t, expected, got)
 	})
 }

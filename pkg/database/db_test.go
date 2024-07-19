@@ -6,41 +6,49 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/vague2k/rummage/pkg/database"
-	"github.com/vague2k/rummage/testutils"
 )
+
+func newDb(t *testing.T) *database.RummageDB {
+	r, err := database.Init(t.TempDir())
+	assert.NoError(t, err)
+	t.Cleanup(func() {
+		r.DB.Close()
+		r = nil
+	})
+	return r
+}
 
 func TestAccess(t *testing.T) {
 	t.Run("Initializing db does not error", func(t *testing.T) {
-		r := testutils.DbInstance(t)
-		defer r.DB.Close()
+		newDb(t)
 	})
 	t.Run("db returns correct dir and filepath", func(t *testing.T) {
 		tmp := t.TempDir()
 		got, err := database.Init(tmp)
-		testutils.CheckErr(t, err)
+		assert.NoError(t, err)
 		defer got.DB.Close()
 
 		expectedDir := filepath.Join(tmp, "rummage")
 		expectedDBFile := filepath.Join(expectedDir, "rummage.db")
 
-		testutils.AssertEquals(t, expectedDir, got.Dir)
-		testutils.AssertEquals(t, expectedDBFile, got.FilePath)
+		assert.Equal(t, expectedDir, got.Dir)
+		assert.Equal(t, expectedDBFile, got.FilePath)
 	})
 }
 
 func TestAddItem(t *testing.T) {
-	r := testutils.DbInstance(t)
-	defer r.DB.Close()
+	r := newDb(t)
 
 	t.Run("Can add item to db", func(t *testing.T) {
 		_, err := r.AddItem("content")
-		testutils.CheckErr(t, err)
+		assert.NoError(t, err)
 	})
 
 	t.Run("Assert added item has correct values", func(t *testing.T) {
 		rows, err := r.DB.Query("SELECT * FROM items WHERE entry = 'content';")
-		testutils.CheckErr(t, err)
+		assert.NoError(t, err)
 
 		var entry string
 		var score float64
@@ -48,27 +56,26 @@ func TestAddItem(t *testing.T) {
 
 		for rows.Next() {
 			err := rows.Scan(&entry, &score, &lastAccessed)
-			testutils.CheckErr(t, err)
+			assert.NoError(t, err)
 		}
 
-		testutils.AssertEquals(t, entry, "content")
-		testutils.AssertEquals(t, score, 1.0)
-		testutils.AssertEquals(t, lastAccessed, time.Now().Unix())
+		assert.Equal(t, entry, "content")
+		assert.Equal(t, score, 1.0)
+		assert.Equal(t, lastAccessed, time.Now().Unix())
 	})
 }
 
 func TestAddMultiItems(t *testing.T) {
-	r := testutils.DbInstance(t)
-	defer r.DB.Close()
+	r := newDb(t)
 
 	items, err := r.AddMultiItems("item1", "item2", "item3")
-	testutils.CheckErr(t, err)
+	assert.NoError(t, err)
 
 	t.Run("Returns expected amount of items", func(t *testing.T) {
 		got := len(items)
 		expected := 3
 
-		testutils.AssertEquals(t, expected, got)
+		assert.Equal(t, expected, got)
 	})
 
 	t.Run("Assert each item is correctly typed", func(t *testing.T) {
@@ -82,27 +89,26 @@ func TestAddMultiItems(t *testing.T) {
 }
 
 func TestSelectItem(t *testing.T) {
-	r := testutils.DbInstance(t)
-	defer r.DB.Close()
+	r := newDb(t)
 
 	_, err := r.AddItem("firstitem")
-	testutils.CheckErr(t, err)
+	assert.NoError(t, err)
 
 	// checking the LastAccessed field is not neccessarily important for this test
 	t.Run("Assert the added item exists", func(t *testing.T) {
 		item, _ := r.SelectItem("firstitem")
 
 		// checking the LastAccessed field is not neccessarily important for this check
-		testutils.AssertEquals(t, item.Entry, "firstitem")
-		testutils.AssertEquals(t, item.Score, 1.0)
+		assert.Equal(t, item.Entry, "firstitem")
+		assert.Equal(t, item.Score, 1.0)
 	})
 
 	t.Run("Assert added item is the only item in the db after attempting to add duplicate", func(t *testing.T) {
 		_, err = r.AddItem("firstitem")
-		testutils.CheckErr(t, err)
+		assert.NoError(t, err)
 
 		rows, err := r.DB.Query("SELECT entry FROM items WHERE entry = ?", "firstitem")
-		testutils.CheckErr(t, err)
+		assert.NoError(t, err)
 		defer rows.Close()
 
 		count := 0
@@ -126,11 +132,10 @@ func TestSelectItem(t *testing.T) {
 }
 
 func TestUpdatedItem(t *testing.T) {
-	r := testutils.DbInstance(t)
-	defer r.DB.Close()
+	r := newDb(t)
 
 	originalItem, err := r.AddItem("firstitem")
-	testutils.CheckErr(t, err)
+	assert.NoError(t, err)
 
 	update := &database.RummageDBItem{
 		Entry:        "updatedfirstitem",
@@ -140,42 +145,41 @@ func TestUpdatedItem(t *testing.T) {
 
 	t.Run("Assert original item is actually updated", func(t *testing.T) {
 		_, err := r.UpdateItem("firstitem", update)
-		testutils.CheckErr(t, err)
+		assert.NoError(t, err)
 
 		_, err = r.DB.Query(`
             SELECT entry FROM items 
             WHERE score = ?`,
 			2.0,
 		)
-		testutils.CheckErr(t, err)
+		assert.NoError(t, err)
 	})
 
 	t.Run("Returns pointer to updated item", func(t *testing.T) {
 		updateItem, err := r.UpdateItem("firstitem", update)
-		testutils.CheckErr(t, err)
+		assert.NoError(t, err)
 
-		testutils.AssertEquals(t, originalItem.Entry, updateItem.Entry)
-		testutils.AssertNotEquals(t, originalItem.Score, updateItem.Score)
+		assert.Equal(t, originalItem.Entry, updateItem.Entry)
+		assert.NotEqual(t, originalItem.Score, updateItem.Score)
 	})
 }
 
 func TestListItems(t *testing.T) {
-	r := testutils.DbInstance(t)
-	defer r.DB.Close()
+	r := newDb(t)
 
 	for i := range 5 {
 		_, err := r.AddItem(fmt.Sprintf("item%d", i))
-		testutils.CheckErr(t, err)
+		assert.NoError(t, err)
 	}
 
 	items, err := r.ListItems()
-	testutils.CheckErr(t, err)
+	assert.NoError(t, err)
 
 	t.Run("Returns expected amount of items", func(t *testing.T) {
 		expected := 5
 		got := len(items)
 
-		testutils.AssertEquals(t, expected, got)
+		assert.Equal(t, expected, got)
 	})
 
 	t.Run("Assert each item is correctly typed", func(t *testing.T) {
@@ -190,13 +194,12 @@ func TestListItems(t *testing.T) {
 
 func TestEntryWithHighestScore(t *testing.T) {
 	t.Run("Returns highest score if multiple entries are found", func(t *testing.T) {
-		r := testutils.DbInstance(t)
-		defer r.DB.Close()
+		r := newDb(t)
 
 		for i := range 5 {
 			name := fmt.Sprintf("item%d", i)
 			_, err := r.AddItem(name)
-			testutils.CheckErr(t, err)
+			assert.NoError(t, err)
 
 			incrementedItemScore := database.RummageDBItem{
 				Entry:        name,
@@ -205,76 +208,72 @@ func TestEntryWithHighestScore(t *testing.T) {
 			}
 
 			_, err = r.UpdateItem(name, &incrementedItemScore)
-			testutils.CheckErr(t, err)
+			assert.NoError(t, err)
 
 		}
 		got, _ := r.EntryWithHighestScore("it")
 		expected := 4.0
 
-		testutils.AssertEquals(t, expected, got.Score)
+		assert.Equal(t, expected, got.Score)
 	})
 
 	t.Run("Returns 1 item if it's the only item in the db", func(t *testing.T) {
-		r := testutils.DbInstance(t)
-		defer r.DB.Close()
+		r := newDb(t)
 
 		_, err := r.AddItem("item")
-		testutils.CheckErr(t, err)
+		assert.NoError(t, err)
 
 		got, _ := r.EntryWithHighestScore("it")
 		expected := 1.0
 
-		testutils.AssertEquals(t, expected, got.Score)
+		assert.Equal(t, expected, got.Score)
 	})
 
 	t.Run("Returns false if no match was found", func(t *testing.T) {
-		r := testutils.DbInstance(t)
-		defer r.DB.Close()
+		r := newDb(t)
 
 		got, gotExists := r.EntryWithHighestScore("it")
 		expectedExists := false
 
-		testutils.AssertNotNil(t, got)
-		testutils.AssertEquals(t, expectedExists, gotExists)
+		assert.Nil(t, got)
+		assert.Equal(t, expectedExists, gotExists)
 	})
 }
 
 func TestDeleteItem(t *testing.T) {
-	r := testutils.DbInstance(t)
-	defer r.DB.Close()
+	r := newDb(t)
 
 	_, err := r.AddItem("item")
-	testutils.CheckErr(t, err)
+	assert.NoError(t, err)
 
 	t.Run("Assert item exists before deletion", func(t *testing.T) {
 		got, _ := r.SelectItem("item")
-		testutils.AssertNotNil(t, got)
+		assert.NotNil(t, got)
 	})
 
 	t.Run("Assert item was deleted", func(t *testing.T) {
 		_, err := r.DeleteItem("item")
-		testutils.CheckErr(t, err)
+		assert.NoError(t, err)
 
 		_, got := r.SelectItem("item")
-		testutils.AssertFalse(t, got)
+		assert.False(t, got)
 	})
 }
 
 func TestFindExactMatch(t *testing.T) {
-	r := testutils.DbInstance(t)
-	defer r.DB.Close()
+	r := newDb(t)
 
 	items, err := r.AddMultiItems("thisitemexistsfirst", "seconditem", "whathappenedhere")
-	testutils.CheckErr(t, err)
+	assert.NoError(t, err)
 
 	t.Run("Assert items exist before finding exact match", func(t *testing.T) {
 		for _, item := range items {
-			testutils.AssertNotNil(t, item)
+			assert.NotNil(t, item)
 		}
 	})
 
 	t.Run("Assert first item found regardless of score", func(t *testing.T) {
 		found, _ := r.FindExactMatch("it")
-		testutils.AssertEquals(t, "thisitemexistsfirst", found.Entry)
+		assert.Equal(t, "thisitemexistsfirst", found.Entry)
 	})
 }
