@@ -1,16 +1,12 @@
-package populate
+package commands
 
 import (
 	"io/fs"
-	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/vague2k/rummage/internal"
 	"github.com/vague2k/rummage/utils"
 )
-
-var logger = internal.NewLogger(nil, os.Stdout)
 
 // Walks $GOPATH/pkg/mod/github.com and parse out package paths valid as args in a "go get" command.
 //

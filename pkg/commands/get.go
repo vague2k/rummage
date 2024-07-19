@@ -1,4 +1,4 @@
-package services
+package commands
 
 import (
 	"errors"
@@ -18,12 +18,12 @@ func AttemptGoGet(arg string) error {
 	cmd := exec.Command("go", "get", arg)
 	b, err := cmd.CombinedOutput()
 	if err != nil {
-		msg := fmt.Sprintf("Could not combined output from 'go get' cmd: \n%s", err)
+		// if there's an error, []byte returned from cmd.CombinedOutput() will contain the error
+		msg := fmt.Sprintf("%v", string(b))
 		return errors.New(msg)
 	}
 
-	output := string(b)
-	logger.Info("Got the following packages...\n", output)
+	logger.Info("Got the following packages...\n", string(b))
 
 	return nil
 }
@@ -46,7 +46,7 @@ func UpdateRecency(db *database.RummageDB, item *database.RummageDBItem) *databa
 // Attempts to call "go get" against an item and if it does not exist in the db, adds it.
 func GoGetAddedItem(db *database.RummageDB, arg string) *database.RummageDBItem {
 	if err := AttemptGoGet(arg); err != nil {
-		logger.Fatal(err)
+		logger.Err(err)
 	}
 
 	added, err := db.AddItem(arg)
@@ -68,7 +68,7 @@ func GoGetHighestScore(db *database.RummageDB, substr string) {
 
 	err := AttemptGoGet(found.Entry)
 	if err != nil {
-		logger.Fatal(err)
+		logger.Err(err)
 	}
 
 	UpdateRecency(db, found)

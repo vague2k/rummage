@@ -11,7 +11,7 @@ import (
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/vague2k/rummage/internal"
-	u "github.com/vague2k/rummage/utils/db"
+	"github.com/vague2k/rummage/utils"
 )
 
 var logger = internal.NewLogger(nil, os.Stdout)
@@ -28,7 +28,7 @@ type RummageDB struct {
 // Init() also makes sure the "items" table exists.
 func Init(path string) (*RummageDB, error) {
 	if path == "" {
-		dataDir := u.UserDataDir()
+		dataDir := utils.UserDataDir()
 		path = dataDir
 	}
 
@@ -47,7 +47,7 @@ func Init(path string) (*RummageDB, error) {
 		msg := fmt.Sprintf("Could not init rummage db: \n%s", err)
 		return nil, errors.New(msg)
 	}
-	u.CreateDBTable(database) // create the items table if it doesn't exist
+	utils.CreateDBTable(database) // create the items table if it doesn't exist
 
 	instance := &RummageDB{
 		DB:       database,

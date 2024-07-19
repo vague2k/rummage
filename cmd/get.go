@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	s "github.com/vague2k/rummage/cmd/services/get"
+	"github.com/vague2k/rummage/pkg/commands"
 	"github.com/vague2k/rummage/pkg/database"
 	"github.com/vague2k/rummage/utils"
 )
@@ -23,10 +23,11 @@ var getCmd = &cobra.Command{
 			hasSlash, _ := utils.ParseForwardSlash(arg)
 			// can safely assume if a "/" is parsed from the arg, it's more than likely an absolute pkg path
 			if hasSlash {
-				s.GoGetAddedItem(db, arg)
+				commands.GoGetAddedItem(db, arg)
 				return
 			}
-			s.GoGetHighestScore(db, arg)
+			commands.GoGetHighestScore(db, arg)
 		}
 	},
 }
+

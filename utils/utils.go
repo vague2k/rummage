@@ -1,15 +1,33 @@
 package utils
 
 import (
+	"database/sql"
+	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
 	"runtime"
 
+	"github.com/spf13/cobra"
 	"github.com/vague2k/rummage/internal"
 )
 
 var logger = internal.NewLogger(nil, os.Stdout)
+
+// Creates a "items" table if it does not exist in the Rummage DB.
+func CreateDBTable(db *sql.DB) {
+	_, err := db.Exec(`
+        CREATE TABLE IF NOT EXISTS items (
+            entry TEXT,
+            score FLOAT,
+            lastAccessed INTEGER
+        )
+    `)
+	if err != nil {
+		msg := fmt.Sprintf("Could not create 'items' table in rummage db: \n%s", err)
+		logger.Fatal(msg)
+	}
+}
 
 // Parses "/" from a string.
 //
@@ -60,4 +78,18 @@ func UserDataDir() string {
 	}
 
 	return dataDir
+}
+
+func RegisterBoolFlags(cmd *cobra.Command, names ...string) map[string]bool {
+	flags := make(map[string]bool)
+
+	for _, name := range names {
+		flagVal, err := cmd.Flags().GetBool(name)
+		if err != nil {
+			logger.Err("Could not register ", name, " flag.")
+		}
+		flags[name] = flagVal
+	}
+
+	return flags
 }

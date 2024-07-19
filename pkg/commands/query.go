@@ -1,15 +1,11 @@
-package query
+package commands
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
-	"github.com/vague2k/rummage/internal"
 	"github.com/vague2k/rummage/pkg/database"
 )
-
-var logger = internal.NewLogger(nil, os.Stdout)
 
 func FindExactMatch(db *database.RummageDB, arg string) {
 	arg = strings.ToLower(arg)

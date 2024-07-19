@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	s "github.com/vague2k/rummage/cmd/services/remove"
+	"github.com/vague2k/rummage/pkg/commands"
 	"github.com/vague2k/rummage/pkg/database"
 	cmdUtils "github.com/vague2k/rummage/utils/cmd"
 )
@@ -20,7 +20,7 @@ var removeCmd = &cobra.Command{
 
 		switch true {
 		case flags["delete-all"]:
-			s.PromptDeleteAll(db)
+			commands.PromptDeleteAll(db)
 		default:
 			for _, arg := range args {
 				if _, err := db.DeleteItem(arg); err != nil {

@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	s "github.com/vague2k/rummage/cmd/services/populate"
+	"github.com/vague2k/rummage/pkg/commands"
 	"github.com/vague2k/rummage/testutils"
 )
 
@@ -27,7 +27,7 @@ func TestWalkAndParsePackages(t *testing.T) {
 			}
 		}
 
-		pkgs := s.WalkAndParsePackages(dir)
+		pkgs := commands.WalkAndParsePackages(dir)
 
 		testutils.AssertEquals(t, 100, len(pkgs))
 		for _, pkg := range pkgs {
@@ -57,7 +57,7 @@ func TestWalkAndParsePackages(t *testing.T) {
 				}
 			}
 		}
-		pkgs := s.WalkAndParsePackages(dir)
+		pkgs := commands.WalkAndParsePackages(dir)
 
 		testutils.AssertEquals(t, 50, len(pkgs))
 		for _, pkg := range pkgs {
