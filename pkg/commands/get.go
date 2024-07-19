@@ -36,7 +36,7 @@ func UpdateRecency(db *database.RummageDB, item *database.RummageDBItem) *databa
 	}
 	item, err := db.UpdateItem(item.Entry, recency)
 	if err != nil {
-		log.Fatal("Did not incrment item's score due to error: \n%s", err)
+		log.Fatal("Did not incrment item's score due to error: \n", err)
 	}
 
 	return item
