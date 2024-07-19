@@ -9,10 +9,10 @@ import (
 	"runtime"
 
 	"github.com/spf13/cobra"
-	"github.com/vague2k/rummage/internal"
+	"github.com/vague2k/rummage/logger"
 )
 
-var logger = internal.NewLogger(nil, os.Stdout)
+var log = logger.New()
 
 // Creates a "items" table if it does not exist in the Rummage DB.
 func CreateDBTable(db *sql.DB) {
@@ -25,7 +25,7 @@ func CreateDBTable(db *sql.DB) {
     `)
 	if err != nil {
 		msg := fmt.Sprintf("Could not create 'items' table in rummage db: \n%s", err)
-		logger.Fatal(msg)
+		log.Fatal(msg)
 	}
 }
 
@@ -47,7 +47,7 @@ func UserGoPath() string {
 
 	home, err := os.UserHomeDir()
 	if err != nil {
-		logger.Fatal("\n", err)
+		log.Fatal("\n", err)
 	}
 
 	return filepath.Join(home, "go")
@@ -65,7 +65,7 @@ func UserDataDir() string {
 
 	home, err := os.UserHomeDir()
 	if err != nil {
-		logger.Fatal("Could not get the home directory")
+		log.Fatal("Could not get the home directory")
 	}
 
 	switch runtime.GOOS {
@@ -86,7 +86,7 @@ func RegisterBoolFlags(cmd *cobra.Command, names ...string) map[string]bool {
 	for _, name := range names {
 		flagVal, err := cmd.Flags().GetBool(name)
 		if err != nil {
-			logger.Err("Could not register ", name, " flag.")
+			log.Err("Could not register ", name, " flag.")
 		}
 		flags[name] = flagVal
 	}

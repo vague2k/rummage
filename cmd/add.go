@@ -11,11 +11,12 @@ var addCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		db, err := database.Init("")
 		if err != nil {
-			logger.Fatal(err)
+			log.Fatal(err)
 		}
-    
+
 		if _, err := db.AddMultiItems(args...); err != nil {
-			logger.Fatal(err)
+			log.Fatal(err)
 		}
 	},
 }
+

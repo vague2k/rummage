@@ -10,11 +10,11 @@ import (
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
-	"github.com/vague2k/rummage/internal"
+	"github.com/vague2k/rummage/logger"
 	"github.com/vague2k/rummage/utils"
 )
 
-var logger = internal.NewLogger(nil, os.Stdout)
+var log = logger.New()
 
 // A database wrapper for Rummage that pertains to rummage's actions
 type RummageDB struct {
@@ -182,7 +182,7 @@ func (r *RummageDB) ListItems() ([]RummageDBItem, error) {
 func (r *RummageDB) EntryWithHighestScore(substr string) (*RummageDBItem, bool) {
 	items, err := r.ListItems()
 	if err != nil {
-		logger.Fatal(err)
+		log.Fatal(err)
 	}
 
 	if len(items) == 1 {
@@ -213,7 +213,7 @@ func (r *RummageDB) EntryWithHighestScore(substr string) (*RummageDBItem, bool) 
 func (r *RummageDB) FindExactMatch(substr string) (*RummageDBItem, bool) {
 	items, err := r.ListItems()
 	if err != nil {
-		logger.Fatal(err)
+		log.Fatal(err)
 	}
 
 	var exactMatch RummageDBItem

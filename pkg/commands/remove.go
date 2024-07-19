@@ -13,7 +13,7 @@ func PromptDeleteAll(db *database.RummageDB) {
 	}
 	err := db.DeleteAllItems()
 	if err != nil {
-		logger.Fatal(err)
+		log.Fatal(err)
 	}
-	logger.Warn("Deleted ALL from the database...")
+	log.Warn("Deleted ALL from the database...")
 }

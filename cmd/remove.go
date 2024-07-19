@@ -15,7 +15,7 @@ var removeCmd = &cobra.Command{
 
 		db, err := database.Init("")
 		if err != nil {
-			logger.Fatal(err)
+			log.Fatal(err)
 		}
 
 		switch true {
@@ -24,7 +24,7 @@ var removeCmd = &cobra.Command{
 		default:
 			for _, arg := range args {
 				if _, err := db.DeleteItem(arg); err != nil {
-					logger.Fatal(err)
+					log.Fatal(err)
 				}
 			}
 		}

@@ -15,7 +15,7 @@ var queryCmd = &cobra.Command{
 
 		db, err := database.Init("")
 		if err != nil {
-			logger.Fatal(err)
+			log.Fatal(err)
 		}
 
 		switch true {
@@ -34,4 +34,3 @@ var queryCmd = &cobra.Command{
 func init() {
 	queryCmd.Flags().BoolP("exact", "e", false, "Query using an exact substring match instead of using highest score.")
 }
-

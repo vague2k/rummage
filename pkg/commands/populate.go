@@ -20,7 +20,7 @@ func WalkAndParsePackages(dir string) []string {
 	)
 	err := filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
-			logger.Err(err)
+			log.Err(err)
 			return nil
 		}
 		if !d.IsDir() {
@@ -47,7 +47,7 @@ func WalkAndParsePackages(dir string) []string {
 		return nil
 	})
 	if err != nil {
-		logger.Fatal("Could not walk dirs: \n", err)
+		log.Fatal("Could not walk dirs: \n", err)
 	}
 
 	return pkgs

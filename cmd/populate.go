@@ -14,10 +14,10 @@ var populateCmd = &cobra.Command{
 	Use:   "populate",
 	Short: "Add already all installed packages to the database",
 	Run: func(cmd *cobra.Command, args []string) {
-		logger.Info("Grabbing manually installed packages to add to the database...")
+		log.Info("Grabbing manually installed packages to add to the database...")
 		db, err := database.Init("")
 		if err != nil {
-			logger.Fatal(err)
+			log.Fatal(err)
 		}
 		defer db.DB.Close()
 
@@ -28,11 +28,10 @@ var populateCmd = &cobra.Command{
 
 		items, err := db.AddMultiItems(pkgs...)
 		if err != nil {
-			logger.Fatal("Failure adding items: \n", err)
+			log.Fatal("Failure adding items: \n", err)
 		}
 
 		msg := fmt.Sprintf("All done. Added %d go packages.", len(items))
-		logger.Info(msg)
+		log.Info(msg)
 	},
 }
-

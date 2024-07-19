@@ -15,7 +15,7 @@ var getCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		db, err := database.Init("")
 		if err != nil {
-			logger.Fatal(err)
+			log.Fatal(err)
 		}
 
 		for _, arg := range args {
@@ -30,4 +30,3 @@ var getCmd = &cobra.Command{
 		}
 	},
 }
-

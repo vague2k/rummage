@@ -3,15 +3,14 @@ package commands
 import (
 	"errors"
 	"fmt"
-	"os"
 	"os/exec"
 	"time"
 
-	"github.com/vague2k/rummage/internal"
+	"github.com/vague2k/rummage/logger"
 	"github.com/vague2k/rummage/pkg/database"
 )
 
-var logger = internal.NewLogger(nil, os.Stdout)
+var log = logger.New()
 
 // Attempts to call "go get" against an arg.
 func AttemptGoGet(arg string) error {
@@ -23,7 +22,7 @@ func AttemptGoGet(arg string) error {
 		return errors.New(msg)
 	}
 
-	logger.Info("Got the following packages...\n", string(b))
+	log.Info("Got the following packages...\n", string(b))
 
 	return nil
 }
@@ -37,7 +36,7 @@ func UpdateRecency(db *database.RummageDB, item *database.RummageDBItem) *databa
 	}
 	item, err := db.UpdateItem(item.Entry, recency)
 	if err != nil {
-		logger.Fatal("Did not incrment item's score due to error: \n%s", err)
+		log.Fatal("Did not incrment item's score due to error: \n%s", err)
 	}
 
 	return item
@@ -46,12 +45,12 @@ func UpdateRecency(db *database.RummageDB, item *database.RummageDBItem) *databa
 // Attempts to call "go get" against an item and if it does not exist in the db, adds it.
 func GoGetAddedItem(db *database.RummageDB, arg string) *database.RummageDBItem {
 	if err := AttemptGoGet(arg); err != nil {
-		logger.Err(err)
+		log.Err(err)
 	}
 
 	added, err := db.AddItem(arg)
 	if err != nil {
-		logger.Fatal(err) // if db can't be accessed
+		log.Fatal(err) // if db can't be accessed
 	}
 
 	UpdateRecency(db, added)
@@ -62,13 +61,13 @@ func GoGetAddedItem(db *database.RummageDB, arg string) *database.RummageDBItem 
 func GoGetHighestScore(db *database.RummageDB, substr string) {
 	found, exists := db.EntryWithHighestScore(substr)
 	if !exists {
-		logger.Warn("No entry was found that could match your argument.")
+		log.Warn("No entry was found that could match your argument.")
 		return
 	}
 
 	err := AttemptGoGet(found.Entry)
 	if err != nil {
-		logger.Err(err)
+		log.Err(err)
 	}
 
 	UpdateRecency(db, found)

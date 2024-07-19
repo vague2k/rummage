@@ -4,10 +4,10 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/vague2k/rummage/internal"
+	"github.com/vague2k/rummage/logger"
 )
 
-var logger = internal.NewLogger(nil, os.Stdout)
+var log = logger.New()
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -17,7 +17,7 @@ var rootCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		err := cmd.Help()
 		if err != nil {
-			logger.Fatal(err)
+			log.Fatal(err)
 		}
 	},
 }
