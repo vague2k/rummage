@@ -9,7 +9,7 @@ env:
 
 builds:
   - main: ./main.go
-    binary: smv
+    binary: rummage
     goos:
       - windows
       - darwin
