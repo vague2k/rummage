@@ -19,9 +19,7 @@ func AttemptGoGet(arg string, flags ...string) error {
 		cmd = exec.Command("go", "get", arg)
 	} else {
 		argWithFlags := []string{"get"}
-		for _, f := range flags {
-			argWithFlags = append(argWithFlags, f)
-		}
+		argWithFlags = append(argWithFlags, flags...)
 		cmd = exec.Command("go", argWithFlags...)
 	}
 	b, err := cmd.CombinedOutput()
