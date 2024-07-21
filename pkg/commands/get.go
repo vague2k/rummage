@@ -12,9 +12,18 @@ import (
 
 var log = logger.New()
 
-// Attempts to call "go get" against an arg.
-func AttemptGoGet(arg string) error {
-	cmd := exec.Command("go", "get", arg)
+// Attempts to call "go get" against an arg and takes into account any flags that "go get" may accept.
+func AttemptGoGet(arg string, flags ...string) error {
+	var cmd *exec.Cmd
+	if flags == nil {
+		cmd = exec.Command("go", "get", arg)
+	} else {
+		argWithFlags := []string{"get"}
+		for _, f := range flags {
+			argWithFlags = append(argWithFlags, f)
+		}
+		cmd = exec.Command("go", argWithFlags...)
+	}
 	b, err := cmd.CombinedOutput()
 	if err != nil {
 		// if there's an error, []byte returned from cmd.CombinedOutput() will contain the error
@@ -43,8 +52,8 @@ func UpdateRecency(db *database.RummageDB, item *database.RummageDBItem) *databa
 }
 
 // Attempts to call "go get" against an item and if it does not exist in the db, adds it.
-func GoGetAddedItem(db *database.RummageDB, arg string) *database.RummageDBItem {
-	if err := AttemptGoGet(arg); err != nil {
+func GoGetAddedItem(db *database.RummageDB, arg string, flags ...string) *database.RummageDBItem {
+	if err := AttemptGoGet(arg, flags...); err != nil {
 		log.Err(err)
 	}
 
@@ -58,14 +67,14 @@ func GoGetAddedItem(db *database.RummageDB, arg string) *database.RummageDBItem 
 }
 
 // Attempts to call "go get" against an item with the highest score where the substr matches any items found in the db.
-func GoGetHighestScore(db *database.RummageDB, substr string) {
+func GoGetHighestScore(db *database.RummageDB, substr string, flags ...string) {
 	found, exists := db.EntryWithHighestScore(substr)
 	if !exists {
 		log.Warn("No entry was found that could match your argument.")
 		return
 	}
 
-	err := AttemptGoGet(found.Entry)
+	err := AttemptGoGet(found.Entry, flags...)
 	if err != nil {
 		log.Err(err)
 	}

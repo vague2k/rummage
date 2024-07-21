@@ -22,13 +22,32 @@ func TestAttemptGoGet(t *testing.T) {
 	t.Run("Successfully gets go package", func(t *testing.T) {
 		test := "github.com/gorilla/mux"
 		err := commands.AttemptGoGet(test)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 	})
 
 	t.Run("Errors when not a go package", func(t *testing.T) {
 		test := "notagopackage"
 		err := commands.AttemptGoGet(test)
-		assert.NotNil(t, err)
+		assert.Error(t, err)
+	})
+
+	t.Run("Can take u, t or x, args", func(t *testing.T) {
+		tests := []struct {
+			name  string
+			flags []string
+		}{
+			{"takes -u", []string{"-u"}},
+			{"takes -u -t", []string{"-u", "-t"}},
+			{"takes -u -t -x", []string{"-u", "-t", "-x"}},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				test := "github.com/gorilla/mux"
+				err := commands.AttemptGoGet(test, tt.flags...)
+				assert.NoError(t, err)
+			})
+		}
 	})
 }
 
