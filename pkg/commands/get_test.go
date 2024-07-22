@@ -22,13 +22,44 @@ func TestAttemptGoGet(t *testing.T) {
 	t.Run("Successfully gets go package", func(t *testing.T) {
 		test := "github.com/gorilla/mux"
 		err := commands.AttemptGoGet(test)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 	})
 
 	t.Run("Errors when not a go package", func(t *testing.T) {
 		test := "notagopackage"
 		err := commands.AttemptGoGet(test)
-		assert.NotNil(t, err)
+		assert.Error(t, err)
+	})
+
+	t.Run("Takes any permutation of '-u -t -x'", func(t *testing.T) {
+		tests := []struct {
+			name  string
+			flags []string
+		}{
+			{"takes -u", []string{"-u"}},
+			{"takes -t", []string{"-t"}},
+			{"takes -x", []string{"-x"}},
+			{"takes -u -t", []string{"-u", "-t"}},
+			{"takes -u -x", []string{"-u", "-x"}},
+			{"takes -t -u", []string{"-t", "-u"}},
+			{"takes -t -x", []string{"-t", "-x"}},
+			{"takes -x -u", []string{"-x", "-u"}},
+			{"takes -x -t", []string{"-x", "-t"}},
+			{"takes -u -t -x", []string{"-u", "-t", "-x"}},
+			{"takes -u -x -t", []string{"-u", "-x", "-t"}},
+			{"takes -t -u -x", []string{"-t", "-u", "-x"}},
+			{"takes -t -x -u", []string{"-t", "-x", "-u"}},
+			{"takes -x -u -t", []string{"-x", "-u", "-t"}},
+			{"takes -x -t -u", []string{"-x", "-t", "-u"}},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				test := "github.com/gorilla/mux"
+				err := commands.AttemptGoGet(test, tt.flags...)
+				assert.NoError(t, err)
+			})
+		}
 	})
 }
 
