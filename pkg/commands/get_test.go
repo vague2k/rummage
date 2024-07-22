@@ -31,14 +31,26 @@ func TestAttemptGoGet(t *testing.T) {
 		assert.Error(t, err)
 	})
 
-	t.Run("Can take u, t or x, args", func(t *testing.T) {
+	t.Run("Takes any permutation of '-u -t -x'", func(t *testing.T) {
 		tests := []struct {
 			name  string
 			flags []string
 		}{
 			{"takes -u", []string{"-u"}},
+			{"takes -t", []string{"-t"}},
+			{"takes -x", []string{"-x"}},
 			{"takes -u -t", []string{"-u", "-t"}},
+			{"takes -u -x", []string{"-u", "-x"}},
+			{"takes -t -u", []string{"-t", "-u"}},
+			{"takes -t -x", []string{"-t", "-x"}},
+			{"takes -x -u", []string{"-x", "-u"}},
+			{"takes -x -t", []string{"-x", "-t"}},
 			{"takes -u -t -x", []string{"-u", "-t", "-x"}},
+			{"takes -u -x -t", []string{"-u", "-x", "-t"}},
+			{"takes -t -u -x", []string{"-t", "-u", "-x"}},
+			{"takes -t -x -u", []string{"-t", "-x", "-u"}},
+			{"takes -x -u -t", []string{"-x", "-u", "-t"}},
+			{"takes -x -t -u", []string{"-x", "-t", "-u"}},
 		}
 
 		for _, tt := range tests {
