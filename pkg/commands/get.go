@@ -2,80 +2,97 @@ package commands
 
 import (
 	"errors"
-	"fmt"
 	"os/exec"
+	"strings"
 	"time"
 
 	"github.com/vague2k/rummage/logger"
 	"github.com/vague2k/rummage/pkg/database"
+	"github.com/vague2k/rummage/utils"
 )
 
 var log = logger.New()
 
 // Attempts to call "go get" against an arg and takes into account any flags that "go get" may accept.
-func AttemptGoGet(arg string, flags ...string) error {
+func attemptGoGet(arg string, flags ...string) error {
 	var cmd *exec.Cmd
 	if flags == nil {
 		cmd = exec.Command("go", "get", arg)
 	} else {
-		argWithFlags := []string{"get"}
-		argWithFlags = append(argWithFlags, flags...)
+		getWithFlags := append([]string{"get"}, flags...)
+		argWithFlags := append(getWithFlags, arg)
 		cmd = exec.Command("go", argWithFlags...)
 	}
 	b, err := cmd.CombinedOutput()
 	if err != nil {
 		// if there's an error, []byte returned from cmd.CombinedOutput() will contain the error
-		msg := fmt.Sprintf("%v", string(b))
-		return errors.New(msg)
+		return errors.New(string(b))
 	}
 
-	log.Info("Got the following packages...\n", string(b))
-
+	log.Print(string(b))
 	return nil
 }
 
 // Increments an item's score and updates the LastAccessed field to time.Now().Unix().
-func UpdateRecency(db *database.RummageDB, item *database.RummageDBItem) *database.RummageDBItem {
+func updateRecency(db *database.RummageDB, item *database.RummageDBItem) error {
 	recency := &database.RummageDBItem{
 		Entry:        item.Entry,
 		Score:        item.RecalculateScore(),
 		LastAccessed: time.Now().Unix(),
 	}
-	item, err := db.UpdateItem(item.Entry, recency)
+	_, err := db.UpdateItem(item.Entry, recency)
 	if err != nil {
-		log.Fatal("Did not incrment item's score due to error: \n", err)
+		return err
 	}
-
-	return item
+	return nil
 }
 
 // Attempts to call "go get" against an item and if it does not exist in the db, adds it.
-func GoGetAddedItem(db *database.RummageDB, arg string, flags ...string) *database.RummageDBItem {
-	if err := AttemptGoGet(arg, flags...); err != nil {
-		log.Err(err)
+func goGetAddedItem(db *database.RummageDB, arg string, flags ...string) error {
+	if err := attemptGoGet(arg, flags...); err != nil {
+		return err
 	}
 
 	added, err := db.AddItem(arg)
 	if err != nil {
-		log.Fatal(err) // if db can't be accessed
+		return err
 	}
 
-	UpdateRecency(db, added)
-	return added
+	err = updateRecency(db, added)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Attempts to call "go get" against an item with the highest score where the substr matches any items found in the db.
-func GoGetHighestScore(db *database.RummageDB, substr string, flags ...string) {
+func goGetHighestScore(db *database.RummageDB, substr string, flags ...string) error {
 	found, exists := db.EntryWithHighestScore(substr)
 	if !exists {
-		log.Warn("No entry was found that could match your argument.")
-		return
+		return errors.New("no entry was found that could match your argument")
 	}
 
-	err := AttemptGoGet(found.Entry, flags...)
+	err := attemptGoGet(found.Entry, flags...)
 	if err != nil {
-		log.Err(err)
+		return err
 	}
 
-	UpdateRecency(db, found)
+	err = updateRecency(db, found)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Tries to "go get" a package based on it's score in the database. If the argument passed has flashes, it will be treated as a regular go package
+func Get(db *database.RummageDB, arg string, flags ...string) error {
+	arg = strings.ToLower(arg)
+	hasSlash, _ := utils.ParseForwardSlash(arg)
+	// can safely assume if a "/" is parsed from the arg, it's more than likely an absolute pkg path
+	if hasSlash {
+		return goGetAddedItem(db, arg, flags...)
+	}
+	return goGetHighestScore(db, arg, flags...)
 }
