@@ -67,6 +67,10 @@ func (l *Logger) Fatal(v ...any) {
 	os.Exit(1)
 }
 
+func (l *Logger) Print(v ...any) {
+	fmt.Print(v...)
+}
+
 // General log that writes input to the io.writer
 func (l *Logger) log(severity LogLevel, v ...any) {
 	b := []byte(formatLog(severity, v...))
