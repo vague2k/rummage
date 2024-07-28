@@ -1,54 +1,68 @@
 package commands
 
 import (
+	"fmt"
 	"io/fs"
 	"path/filepath"
 	"strings"
 
+	"github.com/vague2k/rummage/pkg/database"
 	"github.com/vague2k/rummage/utils"
 )
 
-// Walks $GOPATH/pkg/mod/github.com and parse out package paths valid as args in a "go get" command.
+// Cuts a path string into a proper, valid go package that is able to be got.
 //
-// Returns a []strings where each elem looks like "github.com/gorilla/mux" for example.
-//
-// TODO: write test for this func
-func WalkAndParsePackages(dir string) []string {
-	var (
-		pkgs []string
-		seen = make(map[string]bool)
-	)
+// package version (e.g. @v1.0.0) will be stripped, but packages such as "github.com/user/example/v2" are valid
+func cut(path string) string {
+	_, after, _ := strings.Cut(path, "mod/")
+	pkg, _, _ := strings.Cut(after, "@")
+	return pkg
+}
+
+// Walks a dir (should be $GOPATH/pkg/mod/github.com) and extracts packages valid as args in a "go get" command.
+func extractPackages(dir string) ([]string, error) {
+	var pkgs []string
+	seen := make(map[string]bool)
 	err := filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
-			log.Err(err)
-			return nil
+			return err
 		}
 		if !d.IsDir() {
 			return nil
 		}
-		// isolate a proper package path, (i.e "github.com/gorilla/mux")
-		// "github.com/gorilla/mux" and "github.com/gorilla/mux/v2" are valid
-		// adds latest versions since version # is stripped
-		pkg := strings.Split(path, "mod/")
-		pkgNoVerNum := strings.Split(pkg[1], "@")
-		curr := pkgNoVerNum[0]
+		pkg := cut(path)
 		// if the package path does not have at least 2 matches of "/", it's not a valid go package, and can be skipped
-		_, slashes := utils.ParseForwardSlash(curr)
-		if slashes < 2 {
+		if strings.Count(pkg, "/") < 2 {
 			return nil
 		}
-
-		if seen[curr] {
+		// keep track of items added to the slice, instead of walked
+		if seen[pkg] {
 			return nil
 		}
-		seen[curr] = true
-
-		pkgs = append(pkgs, pkgNoVerNum[0])
+		seen[pkg] = true
+		pkgs = append(pkgs, pkg)
 		return nil
 	})
 	if err != nil {
-		log.Fatal("Could not walk dirs: \n", err)
+		return nil, err
 	}
 
-	return pkgs
+	return pkgs, nil
+}
+
+// Populate will fill the database with packages already installed from you go path's "mod/github.com" directory
+func Populate(db *database.RummageDB) {
+	GOPATH := utils.UserGoPath()
+	dir := filepath.Join(GOPATH, "pkg", "mod", "github.com")
+	pkgs, err := extractPackages(dir)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	items, err := db.AddMultiItems(pkgs...)
+	if err != nil {
+		log.Fatal("Failure adding items: \n", err)
+	}
+
+	log.Print(fmt.Sprintf("Added %d packages to the database.\n", len(items)))
 }
