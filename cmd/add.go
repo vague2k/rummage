@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
+	"github.com/vague2k/rummage/pkg/commands"
 	"github.com/vague2k/rummage/pkg/database"
 )
 
@@ -14,9 +15,9 @@ var addCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 
-		if _, err := db.AddMultiItems(args...); err != nil {
-			log.Fatal(err)
+		err = commands.Add(db, args...)
+		if err != nil {
+			log.Err(err)
 		}
 	},
 }
-
