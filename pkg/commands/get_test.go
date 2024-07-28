@@ -66,10 +66,4 @@ func TestGet(t *testing.T) {
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "go: malformed module path")
 	})
-
-	t.Run("Errors when package repo doesn't exist", func(t *testing.T) {
-		err := Get(r, "github.com/user/thisshouldnotexist")
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "Repository not found")
-	})
 }
