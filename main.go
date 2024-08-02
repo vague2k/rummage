@@ -1,7 +1,17 @@
 package main
 
-import "github.com/vague2k/rummage/cmd"
+import (
+	"github.com/vague2k/rummage/cmd"
+)
 
 func main() {
-	cmd.Execute()
+	// db, err := database.Init("")
+	// if err != nil {
+	//     panic(err)
+	// }
+
+	root := cmd.NewRootCmd()
+	if err := root.Execute(); err != nil {
+		panic(err)
+	}
 }

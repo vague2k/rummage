@@ -1,7 +1,6 @@
 package database_test
 
 import (
-	"fmt"
 	"path/filepath"
 	"testing"
 	"time"
@@ -10,270 +9,189 @@ import (
 	"github.com/vague2k/rummage/pkg/database"
 )
 
-func newDb(t *testing.T) *database.RummageDB {
+func newDb(t *testing.T) *database.RummageDb {
 	r, err := database.Init(t.TempDir())
 	assert.NoError(t, err)
 	t.Cleanup(func() {
-		r.DB.Close()
+		r.Close()
 		r = nil
 	})
 	return r
 }
 
-func TestAccess(t *testing.T) {
-	t.Run("Initializing db does not error", func(t *testing.T) {
-		newDb(t)
-	})
-	t.Run("db returns correct dir and filepath", func(t *testing.T) {
-		tmp := t.TempDir()
-		got, err := database.Init(tmp)
-		assert.NoError(t, err)
-		defer got.DB.Close()
+// Actual test cases should are in seperate t.Run() instances, unless the test is reasonable concise enough to
+// be put under it's own function.
+//
+// For the most part, if you see function calls before a t.Run(), it's more than likely a setup for those test cases.
 
-		expectedDir := filepath.Join(tmp, "rummage")
-		expectedDBFile := filepath.Join(expectedDir, "rummage.db")
+func TestInit(t *testing.T) {
+	tmp := t.TempDir()
+	r, err := database.Init(tmp)
+	assert.NoError(t, err)
 
-		assert.Equal(t, expectedDir, got.Dir)
-		assert.Equal(t, expectedDBFile, got.FilePath)
-	})
+	expectedDir := filepath.Join(tmp, "rummage")
+	expectedDBFile := filepath.Join(expectedDir, "rummage.db")
+
+	assert.NotNil(t, r)
+	assert.NotEmpty(t, r.Dir)
+	assert.NotEmpty(t, r.FilePath)
+	assert.Equal(t, expectedDir, r.Dir)
+	assert.Equal(t, expectedDBFile, r.FilePath)
 }
 
+// NOTE: we do not need to test AddMultiItems() since it's just a for loop wrapped around AddItem()
 func TestAddItem(t *testing.T) {
 	r := newDb(t)
 
-	t.Run("Can add item to db", func(t *testing.T) {
-		_, err := r.AddItem("content")
+	t.Run("Can add item that resembles a go package", func(t *testing.T) {
+		item, err := r.AddItem("github.com/gorilla/mux")
 		assert.NoError(t, err)
+		assert.NotNil(t, item)
+		assert.Equal(t, "github.com/gorilla/mux", item.Entry)
+		assert.Equal(t, 1.0, item.Score)
+		assert.Equal(t, time.Now().Unix(), item.LastAccessed)
 	})
 
-	t.Run("Assert added item has correct values", func(t *testing.T) {
-		rows, err := r.DB.Query("SELECT * FROM items WHERE entry = 'content';")
+	// we can check if it's the same item by comparing the item.LastAccessed field offset by 1 (second) in both directions
+	t.Run("Returns existing item", func(t *testing.T) {
+		item, err := r.AddItem("github.com/gorilla/mux")
 		assert.NoError(t, err)
-
-		var entry string
-		var score float64
-		var lastAccessed int64
-
-		for rows.Next() {
-			err := rows.Scan(&entry, &score, &lastAccessed)
-			assert.NoError(t, err)
-		}
-
-		assert.Equal(t, entry, "content")
-		assert.Equal(t, score, 1.0)
-		assert.Equal(t, lastAccessed, time.Now().Unix())
-	})
-}
-
-func TestAddMultiItems(t *testing.T) {
-	r := newDb(t)
-
-	items, err := r.AddMultiItems("item1", "item2", "item3")
-	assert.NoError(t, err)
-
-	t.Run("Returns expected amount of items", func(t *testing.T) {
-		got := len(items)
-		expected := 3
-
-		assert.Equal(t, expected, got)
+		assert.NotNil(t, item)
+		assert.Equal(t, "github.com/gorilla/mux", item.Entry)
+		assert.Equal(t, 1.0, item.Score)
+		assert.NotEqual(t, time.Now().Unix(), item.LastAccessed+1)
+		assert.NotEqual(t, time.Now().Unix(), item.LastAccessed-1)
 	})
 
-	t.Run("Assert each item is correctly typed", func(t *testing.T) {
-		for _, item := range items {
-			var check interface{} = item
-			if value, ok := check.(database.RummageDBItem); !ok {
-				t.Errorf("The item %v is not of type database.RummageDBItem", value)
-			}
-		}
+	t.Run("Errors if item doesn't resemble a go package", func(t *testing.T) {
+		item, err := r.AddItem("notagopackage")
+		assert.ErrorContains(t, err, "the item attempted to be added to the database does not resemble a go package")
+		assert.Nil(t, item)
 	})
 }
 
 func TestSelectItem(t *testing.T) {
 	r := newDb(t)
-
-	_, err := r.AddItem("firstitem")
+	_, err := r.AddItem("github.com/gorilla/mux")
 	assert.NoError(t, err)
 
-	// checking the LastAccessed field is not neccessarily important for this test
-	t.Run("Assert the added item exists", func(t *testing.T) {
-		item, _ := r.SelectItem("firstitem")
-
-		// checking the LastAccessed field is not neccessarily important for this check
-		assert.Equal(t, item.Entry, "firstitem")
-		assert.Equal(t, item.Score, 1.0)
+	t.Run("Can select existing item", func(t *testing.T) {
+		item, err := r.SelectItem("github.com/gorilla/mux")
+		assert.NoError(t, err)
+		assert.NotNil(t, item)
+		assert.Equal(t, "github.com/gorilla/mux", item.Entry)
+		assert.Equal(t, 1.0, item.Score)
+		assert.Equal(t, time.Now().Unix(), item.LastAccessed)
 	})
 
-	t.Run("Assert added item is the only item in the db after attempting to add duplicate", func(t *testing.T) {
-		_, err = r.AddItem("firstitem")
-		assert.NoError(t, err)
-
-		rows, err := r.DB.Query("SELECT entry FROM items WHERE entry = ?", "firstitem")
-		assert.NoError(t, err)
-		defer rows.Close()
-
-		count := 0
-		for rows.Next() {
-			count++
-		}
-
-		if count != 1 {
-			t.Errorf("Expected 1 item in the db, but found %d.", count)
-		}
-	})
-
-	t.Run("Assert an item does not exist", func(t *testing.T) {
-		entryShouldNotExist := "somethingthatshouldntexist"
-		_, exists := r.SelectItem(entryShouldNotExist)
-
-		if exists {
-			t.Errorf("Expected item with entry '%s' to not exist, but it actually does.", entryShouldNotExist)
-		}
+	t.Run("Errors if item does not exist", func(t *testing.T) {
+		item, err := r.SelectItem("doesnotexist")
+		assert.ErrorContains(t, err, "the item with entry doesnotexist does not exist")
+		assert.Nil(t, item)
 	})
 }
 
-func TestUpdatedItem(t *testing.T) {
+func TestUpdateItem(t *testing.T) {
 	r := newDb(t)
-
-	originalItem, err := r.AddItem("firstitem")
+	_, err := r.AddItem("github.com/gorilla/mux")
 	assert.NoError(t, err)
 
-	update := &database.RummageDBItem{
-		Entry:        "updatedfirstitem",
-		Score:        2.0,
-		LastAccessed: time.Now().Unix(),
-	}
-
-	t.Run("Assert original item is actually updated", func(t *testing.T) {
-		_, err := r.UpdateItem("firstitem", update)
+	t.Run("Can update existing item", func(t *testing.T) {
+		item, err := r.UpdateItem("github.com/gorilla/mux", 4.0)
 		assert.NoError(t, err)
-
-		_, err = r.DB.Query(`
-            SELECT entry FROM items 
-            WHERE score = ?`,
-			2.0,
-		)
-		assert.NoError(t, err)
+		assert.Equal(t, "github.com/gorilla/mux", item.Entry)
+		assert.Equal(t, 4.0, item.Score)
+		assert.Equal(t, time.Now().Unix(), item.LastAccessed)
 	})
 
-	t.Run("Returns pointer to updated item", func(t *testing.T) {
-		updateItem, err := r.UpdateItem("firstitem", update)
-		assert.NoError(t, err)
-
-		assert.Equal(t, originalItem.Entry, updateItem.Entry)
-		assert.NotEqual(t, originalItem.Score, updateItem.Score)
+	t.Run("Errors if item does not exist", func(t *testing.T) {
+		item, err := r.UpdateItem("shouldnotexist", 0.0)
+		assert.ErrorContains(t, err, "the item with entry shouldnotexist is attempted to be updated but does not exist")
+		assert.Nil(t, item)
 	})
 }
 
 func TestListItems(t *testing.T) {
 	r := newDb(t)
-
-	for i := range 5 {
-		_, err := r.AddItem(fmt.Sprintf("item%d", i))
-		assert.NoError(t, err)
-	}
+	_, err := r.AddMultiItems("github.com/gorilla/mux", "github.com/gofiber/fiber/v2")
+	assert.NoError(t, err)
 
 	items, err := r.ListItems()
 	assert.NoError(t, err)
-
-	t.Run("Returns expected amount of items", func(t *testing.T) {
-		expected := 5
-		got := len(items)
-
-		assert.Equal(t, expected, got)
-	})
-
-	t.Run("Assert each item is correctly typed", func(t *testing.T) {
-		for _, item := range items {
-			var check interface{} = item
-			if value, ok := check.(database.RummageDBItem); !ok {
-				t.Errorf("The item %v is not of type database.RummageDBItem", value)
-			}
-		}
-	})
-}
-
-func TestEntryWithHighestScore(t *testing.T) {
-	t.Run("Returns highest score if multiple entries are found", func(t *testing.T) {
-		r := newDb(t)
-
-		for i := range 5 {
-			name := fmt.Sprintf("item%d", i)
-			_, err := r.AddItem(name)
-			assert.NoError(t, err)
-
-			incrementedItemScore := database.RummageDBItem{
-				Entry:        name,
-				Score:        float64(i),
-				LastAccessed: time.Now().Unix(),
-			}
-
-			_, err = r.UpdateItem(name, &incrementedItemScore)
-			assert.NoError(t, err)
-
-		}
-		got, _ := r.EntryWithHighestScore("it")
-		expected := 4.0
-
-		assert.Equal(t, expected, got.Score)
-	})
-
-	t.Run("Returns 1 item if it's the only item in the db", func(t *testing.T) {
-		r := newDb(t)
-
-		_, err := r.AddItem("item")
-		assert.NoError(t, err)
-
-		got, _ := r.EntryWithHighestScore("it")
-		expected := 1.0
-
-		assert.Equal(t, expected, got.Score)
-	})
-
-	t.Run("Returns false if no match was found", func(t *testing.T) {
-		r := newDb(t)
-
-		got, gotExists := r.EntryWithHighestScore("it")
-		expectedExists := false
-
-		assert.Nil(t, got)
-		assert.Equal(t, expectedExists, gotExists)
-	})
+	assert.Len(t, items, 2)
 }
 
 func TestDeleteItem(t *testing.T) {
 	r := newDb(t)
-
-	_, err := r.AddItem("item")
+	_, err := r.AddItem("github.com/gorilla/mux")
 	assert.NoError(t, err)
 
-	t.Run("Assert item exists before deletion", func(t *testing.T) {
-		got, _ := r.SelectItem("item")
-		assert.NotNil(t, got)
+	t.Run("Can delete existing item", func(t *testing.T) {
+		item, err := r.DeleteItem("github.com/gorilla/mux")
+		assert.NoError(t, err)
+		assert.NotNil(t, item)
+		assert.Equal(t, "github.com/gorilla/mux", item.Entry)
+		assert.Equal(t, 1.0, item.Score)
+		assert.Equal(t, time.Now().Unix(), item.LastAccessed)
+
+		item, err = r.SelectItem("github.com/gorilla/mux")
+		assert.Error(t, err)
+		assert.Nil(t, item)
 	})
 
-	t.Run("Assert item was deleted", func(t *testing.T) {
-		_, err := r.DeleteItem("item")
-		assert.NoError(t, err)
+	t.Run("Errors if item does not exist", func(t *testing.T) {
+		item, err := r.DeleteItem("doesnotexist")
+		assert.ErrorContains(t, err, "can't delete item with entry doesnotexist it does not exist")
+		assert.Nil(t, item)
+	})
+}
 
-		_, got := r.SelectItem("item")
-		assert.False(t, got)
+func TestEntryWithHighestScore(t *testing.T) {
+	r := newDb(t)
+	_, err := r.AddMultiItems("github.com/gorilla/mux", "github.com/user/mux", "github.com/doesntexist/mux")
+	assert.NoError(t, err)
+	_, err = r.UpdateItem("github.com/gorilla/mux", 2.0)
+	assert.NoError(t, err)
+	_, err = r.UpdateItem("github.com/user/mux", 10.0)
+	assert.NoError(t, err)
+	_, err = r.UpdateItem("github.com/doesntexist/mux", 5.0)
+	assert.NoError(t, err)
+
+	t.Run("Can get entry with highest score", func(t *testing.T) {
+		item, err := r.EntryWithHighestScore("mux")
+		assert.NoError(t, err)
+		assert.NotNil(t, item)
+
+		assert.Equal(t, "github.com/user/mux", item.Entry)
+		assert.Equal(t, 10.0, item.Score)
+		assert.Equal(t, time.Now().Unix(), item.LastAccessed)
+	})
+
+	t.Run("Errors if no match was found", func(t *testing.T) {
+		item, err := r.EntryWithHighestScore("doesnotexist")
+		assert.ErrorContains(t, err, "no match found with the given arguement doesnotexist")
+		assert.Nil(t, item)
 	})
 }
 
 func TestFindExactMatch(t *testing.T) {
 	r := newDb(t)
-
-	items, err := r.AddMultiItems("thisitemexistsfirst", "seconditem", "whathappenedhere")
+	_, err := r.AddMultiItems("github.com/gorilla/mux", "github.com/user/mux", "github.com/doesntexist/mux")
 	assert.NoError(t, err)
 
-	t.Run("Assert items exist before finding exact match", func(t *testing.T) {
-		for _, item := range items {
-			assert.NotNil(t, item)
-		}
+	t.Run("Can find first occurence of substr (exact match)", func(t *testing.T) {
+		item, err := r.FindExactMatch("mux")
+		assert.NoError(t, err)
+		assert.NotNil(t, item)
+
+		assert.Equal(t, "github.com/gorilla/mux", item.Entry)
+		assert.Equal(t, 1.0, item.Score)
+		assert.Equal(t, time.Now().Unix(), item.LastAccessed)
 	})
 
-	t.Run("Assert first item found regardless of score", func(t *testing.T) {
-		found, _ := r.FindExactMatch("it")
-		assert.Equal(t, "thisitemexistsfirst", found.Entry)
+	t.Run("Errors if no exact match was found", func(t *testing.T) {
+		item, err := r.FindExactMatch("doesnotexist")
+		assert.ErrorContains(t, err, "no match found with the given arguement doesnotexist")
+		assert.Nil(t, item)
 	})
 }

@@ -1,11 +1,10 @@
 package database
 
 import (
-	"fmt"
 	"time"
 )
 
-type RummageDBItem struct {
+type RummageItem struct {
 	// The name of the pkg to get
 	Entry string
 	// the score calculated based on recency. higher means more frequent uses.
@@ -23,27 +22,15 @@ const (
 	_WEEK = _DAY * 7
 )
 
-// Returns the LastAccessed field as a string
-func (i *RummageDBItem) LastAccessedAsString() string {
-	s := fmt.Sprintf("%d", i.LastAccessed)
-	return s
-}
-
-// Returns the Score field as a string
-func (i *RummageDBItem) ScoreAsString() string {
-	s := fmt.Sprintf("%f", i.Score)
-	return s
-}
-
 // Recalculates an item's score based on the last time it was last accessed.
-func (i *RummageDBItem) RecalculateScore() float64 {
+func (i *RummageItem) RecalculateScore() float64 {
 	var score float64
 
 	duration := i.LastAccessed - time.Now().Unix()
 
 	// the older the time, the lower the score
 	if duration < _HOUR {
-		score = i.Score * 4.0
+		score = i.Score + 4.0
 	} else if duration < _DAY {
 		score = i.Score * 2.0
 	} else if duration < _WEEK {
