@@ -10,8 +10,9 @@ import (
 	"github.com/vague2k/rummage/pkg/database"
 )
 
-func newDb(t *testing.T) *database.RummageDb {
-	r, err := database.Init(t.TempDir())
+// Spin up an in memory db (since we're using sqlite3) for quick testing
+func inMemDb(t *testing.T) *database.RummageDb {
+	r, err := database.Init(":memory:")
 	assert.NoError(t, err)
 	t.Cleanup(func() {
 		r.Close()
@@ -41,7 +42,7 @@ func TestInit(t *testing.T) {
 }
 
 func TestAddItem(t *testing.T) {
-	r := newDb(t)
+	r := inMemDb(t)
 
 	t.Run("Can add item that resembles a go package", func(t *testing.T) {
 		item, err := r.AddItem("github.com/gorilla/mux")
@@ -72,7 +73,7 @@ func TestAddItem(t *testing.T) {
 
 func TestAddMultiItems(t *testing.T) {
 	t.Run("Can add item(s) that resembles a go package", func(t *testing.T) {
-		r := newDb(t)
+		r := inMemDb(t)
 		items, amtAdded, err := r.AddMultiItems("github.com/gorilla/mux", "github.com/user/mux", "github.com/doesntexist/mux")
 		assert.NoError(t, err)
 		assert.Equal(t, 3, amtAdded)
@@ -84,7 +85,7 @@ func TestAddMultiItems(t *testing.T) {
 	})
 
 	t.Run("Returns 0 added if items already exist in db. 0/3", func(t *testing.T) {
-		r := newDb(t)
+		r := inMemDb(t)
 		_, amtAdded, err := r.AddMultiItems("github.com/gorilla/mux", "github.com/user/mux", "github.com/doesntexist/mux")
 		assert.NoError(t, err)
 		assert.Equal(t, 3, amtAdded)
@@ -95,7 +96,7 @@ func TestAddMultiItems(t *testing.T) {
 	})
 
 	t.Run("Errors if item doesn't resemble a go package", func(t *testing.T) {
-		r := newDb(t)
+		r := inMemDb(t)
 		items, amtAdded, err := r.AddMultiItems("notagopackage", "notanothergopackage")
 		assert.ErrorContains(t, err, "issue occured when adding item notagopackage to the db")
 		assert.Nil(t, items)
@@ -103,7 +104,7 @@ func TestAddMultiItems(t *testing.T) {
 	})
 
 	t.Run("Returns correct amount of added packages. 2/3", func(t *testing.T) {
-		r := newDb(t)
+		r := inMemDb(t)
 		items, amtAdded, err := r.AddMultiItems("github.com/gorilla/mux", "github.com/user/mux", "notagopackage")
 		assert.Error(t, err)
 		assert.NotNil(t, items)
@@ -112,7 +113,7 @@ func TestAddMultiItems(t *testing.T) {
 }
 
 func TestSelectItem(t *testing.T) {
-	r := newDb(t)
+	r := inMemDb(t)
 	_, err := r.AddItem("github.com/gorilla/mux")
 	assert.NoError(t, err)
 
@@ -133,27 +134,27 @@ func TestSelectItem(t *testing.T) {
 }
 
 func TestUpdateItem(t *testing.T) {
-	r := newDb(t)
+	r := inMemDb(t)
 	_, err := r.AddItem("github.com/gorilla/mux")
 	assert.NoError(t, err)
 
 	t.Run("Can update existing item", func(t *testing.T) {
-		item, err := r.UpdateItem("github.com/gorilla/mux", 4.0)
+		item, err := r.UpdateItem("github.com/gorilla/mux", 4.0, 123)
 		assert.NoError(t, err)
 		assert.Equal(t, "github.com/gorilla/mux", item.Entry)
 		assert.Equal(t, 4.0, item.Score)
-		assert.Equal(t, time.Now().Unix(), item.LastAccessed)
+		assert.Equal(t, int64(123), item.LastAccessed)
 	})
 
 	t.Run("Errors if item does not exist", func(t *testing.T) {
-		item, err := r.UpdateItem("shouldnotexist", 0.0)
+		item, err := r.UpdateItem("shouldnotexist", 0.0, 1)
 		assert.ErrorContains(t, err, "the item with entry shouldnotexist is attempted to be updated but does not exist")
 		assert.Nil(t, item)
 	})
 }
 
 func TestListItems(t *testing.T) {
-	r := newDb(t)
+	r := inMemDb(t)
 	_, _, err := r.AddMultiItems("github.com/gorilla/mux", "github.com/gofiber/fiber/v2")
 	assert.NoError(t, err)
 
@@ -163,7 +164,7 @@ func TestListItems(t *testing.T) {
 }
 
 func TestDeleteItem(t *testing.T) {
-	r := newDb(t)
+	r := inMemDb(t)
 	_, err := r.AddItem("github.com/gorilla/mux")
 	assert.NoError(t, err)
 
@@ -188,14 +189,14 @@ func TestDeleteItem(t *testing.T) {
 }
 
 func TestEntryWithHighestScore(t *testing.T) {
-	r := newDb(t)
+	r := inMemDb(t)
 	_, _, err := r.AddMultiItems("github.com/gorilla/mux", "github.com/user/mux", "github.com/doesntexist/mux")
 	assert.NoError(t, err)
-	_, err = r.UpdateItem("github.com/gorilla/mux", 2.0)
+	_, err = r.UpdateItem("github.com/gorilla/mux", 2.0, 2)
 	assert.NoError(t, err)
-	_, err = r.UpdateItem("github.com/user/mux", 10.0)
+	_, err = r.UpdateItem("github.com/user/mux", 10.0, 10)
 	assert.NoError(t, err)
-	_, err = r.UpdateItem("github.com/doesntexist/mux", 5.0)
+	_, err = r.UpdateItem("github.com/doesntexist/mux", 5.0, 5)
 	assert.NoError(t, err)
 
 	t.Run("Can get entry with highest score", func(t *testing.T) {
@@ -205,7 +206,7 @@ func TestEntryWithHighestScore(t *testing.T) {
 
 		assert.Equal(t, "github.com/user/mux", item.Entry)
 		assert.Equal(t, 10.0, item.Score)
-		assert.Equal(t, time.Now().Unix(), item.LastAccessed)
+		assert.Equal(t, int64(10), item.LastAccessed)
 	})
 
 	t.Run("Errors if no match was found", func(t *testing.T) {
@@ -216,7 +217,7 @@ func TestEntryWithHighestScore(t *testing.T) {
 }
 
 func TestFindExactMatch(t *testing.T) {
-	r := newDb(t)
+	r := inMemDb(t)
 	_, _, err := r.AddMultiItems("github.com/gorilla/mux", "github.com/user/mux", "github.com/doesntexist/mux")
 	assert.NoError(t, err)
 

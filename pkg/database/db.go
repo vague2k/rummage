@@ -24,7 +24,7 @@ type RummageDbInterface interface {
 	FindExactMatch(substr string) (*RummageItem, error)
 	ListItems() ([]*RummageItem, error)
 	SelectItem(entry string) (*RummageItem, error)
-	UpdateItem(entry string, score float64) (*RummageItem, error)
+	UpdateItem(entry string, score float64, lastAccessed int64) (*RummageItem, error)
 }
 
 // A database wrapper for Rummage that pertains to rummage's actions
@@ -45,13 +45,17 @@ func Init(path string) (*RummageDb, error) {
 		path = dataDir
 	}
 
-	// make sure the path to the db exists
-	dir := filepath.Join(path, "rummage")
-	dbFile := filepath.Join(dir, "rummage.db")
-
-	err := os.MkdirAll(dir, 0777)
-	if err != nil {
-		return nil, fmt.Errorf("could not create db dir: \n%s", err)
+	var dir string
+	var dbFile string
+	if path == ":memory:" {
+		dbFile = ":memory:"
+	} else {
+		dir = filepath.Join(path, "rummage")
+		dbFile = filepath.Join(dir, "rummage.db")
+		err := os.MkdirAll(dir, 0777)
+		if err != nil {
+			return nil, fmt.Errorf("could not create db dir: \n%s", err)
+		}
 	}
 
 	database, err := sql.Open("sqlite3", dbFile)
@@ -138,7 +142,7 @@ func (r *RummageDb) SelectItem(entry string) (*RummageItem, error) {
 }
 
 // Updates an item in the db if the entry can be found.
-func (r *RummageDb) UpdateItem(entry string, score float64) (*RummageItem, error) {
+func (r *RummageDb) UpdateItem(entry string, score float64, lastAccessed int64) (*RummageItem, error) {
 	if _, err := r.SelectItem(entry); err != nil {
 		return nil, fmt.Errorf("the item with entry %s is attempted to be updated but does not exist", entry)
 	}
@@ -149,7 +153,7 @@ func (r *RummageDb) UpdateItem(entry string, score float64) (*RummageItem, error
         WHERE entry = ?
         `,
 		score,
-		time.Now().Unix(),
+		lastAccessed,
 		entry,
 	)
 	if err != nil {
@@ -159,7 +163,7 @@ func (r *RummageDb) UpdateItem(entry string, score float64) (*RummageItem, error
 	updatedItem := &RummageItem{
 		Entry:        entry,
 		Score:        score,
-		LastAccessed: time.Now().Unix(),
+		LastAccessed: lastAccessed,
 	}
 
 	return updatedItem, nil

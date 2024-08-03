@@ -1,4 +1,4 @@
-package cmd
+package testutils
 
 import (
 	"bytes"
@@ -9,9 +9,26 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
+	"github.com/vague2k/rummage/pkg/database"
 )
 
-func execute(cmd *cobra.Command, args ...string) string {
+// Spin up an in memory database (since we're using sqlite3) for quick testing
+//
+// This function already includes a cleanup function where when the test completes, the database is closed
+func InMemDb(t *testing.T) *database.RummageDb {
+	db, err := database.Init(":memory:")
+	assert.NoError(t, err)
+	t.Cleanup(func() {
+		db.Close()
+		db = nil
+	})
+	return db
+}
+
+// Execute a cobra command with custom args for testing using *bytes.Buffer under the hood.
+//
+// Since the root cmd is used for testing, any subcommands the root command has will have to be included in the args
+func Execute(cmd *cobra.Command, args ...string) string {
 	buf := new(bytes.Buffer)
 
 	cmd.SetOut(buf)
@@ -25,8 +42,9 @@ func execute(cmd *cobra.Command, args ...string) string {
 }
 
 // Mock the $GOPATH/pkg/mod/github.com dir using the test's TempDir
+//
 // Only 3 out of 3 dirs should be "valid"
-func mock3outof3pkgs(t *testing.T) string {
+func Mock3outof3pkgs(t *testing.T) string {
 	dir := filepath.Join(t.TempDir(), "go", "pkg", "mod", "github.com")
 	for i := range 3 {
 		parentDir := filepath.Join(dir, fmt.Sprintf("dir%d", i))
@@ -42,8 +60,9 @@ func mock3outof3pkgs(t *testing.T) string {
 }
 
 // Mock the $GOPATH/pkg/mod/github.com dir using the test's TempDir
+//
 // Only 1 out of 3 dirs should be "valid"
-func mock1outof3pkgs(t *testing.T) string {
+func Mock1outof3pkgs(t *testing.T) string {
 	dir := filepath.Join(t.TempDir(), "go", "pkg", "mod", "github.com")
 	for i := range 3 {
 		parentDir := filepath.Join(dir, fmt.Sprintf("dir%d", i))
