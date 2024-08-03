@@ -2,9 +2,10 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
+	"github.com/vague2k/rummage/pkg/database"
 )
 
-func NewRootCmd() *cobra.Command {
+func NewRootCmd(db database.RummageDbInterface) *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:     "rummage [command]",
 		Version: "3.0.0",
@@ -15,6 +16,8 @@ func NewRootCmd() *cobra.Command {
 			}
 		},
 	}
+
+	rootCmd.AddCommand(newPopulateCmd(db))
 
 	return rootCmd
 }
