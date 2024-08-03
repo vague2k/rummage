@@ -2,7 +2,6 @@ package database
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -15,7 +14,22 @@ import (
 	"github.com/vague2k/rummage/utils"
 )
 
+type RummageDbInterface interface {
+	AddItem(entry string) (*RummageItem, error)
+	AddMultiItems(entries ...string) ([]*RummageItem, int, error)
+	Close()
+	DeleteAllItems() error
+	DeleteItem(entry string) (*RummageItem, error)
+	EntryWithHighestScore(substr string) (*RummageItem, error)
+	FindExactMatch(substr string) (*RummageItem, error)
+	ListItems() ([]*RummageItem, error)
+	SelectItem(entry string) (*RummageItem, error)
+	UpdateItem(entry string, score float64) (*RummageItem, error)
+}
+
 // A database wrapper for Rummage that pertains to rummage's actions
+//
+// This struct and it's methods implements RummageDbInterface
 type RummageDb struct {
 	Sqlite   *sql.DB // Pointer to the underlying sqlite database
 	Dir      string  // The parent directory of the database
@@ -80,7 +94,7 @@ func (r *RummageDb) AddItem(entry string) (*RummageItem, error) {
 		return item, nil
 	}
 
-	regex := regexp.MustCompile(`^([a-zA-Z0-9-]+\.)+[a-zA-Z0-9-]+(/[a-zA-Z0-9-_\.]+)+(/[vV]\d+)?$`)
+	regex := regexp.MustCompile(`^([a-zA-Z0-9-]+\.)+[a-zA-Z0-9-!]+(/[a-zA-Z0-9-_\.!]+)+(/[vV]\d+)?$`)
 	if !regex.MatchString(entry) {
 		return nil, fmt.Errorf("the item attempted to be added to the database does not resemble a go package")
 	}
@@ -237,21 +251,27 @@ func (r *RummageDb) FindExactMatch(substr string) (*RummageItem, error) {
 	return exactMatch, nil
 }
 
-// Adds multiple items to the db and returns []RummageDBItem
-func (r *RummageDb) AddMultiItems(entries ...string) ([]*RummageItem, error) {
+// Adds multiple items to the db and returns []*RummageDBItem along with the number of items added
+func (r *RummageDb) AddMultiItems(entries ...string) ([]*RummageItem, int, error) {
 	var slice []*RummageItem
+	var itemsAdded int
 
-	for n, entry := range entries {
+	for _, entry := range entries {
+		// if the entry attempted to be added already exists, skip this iteration
+		if _, err := r.SelectItem(entry); err == nil {
+			continue
+		}
+
 		item, err := r.AddItem(entry)
 		if err != nil {
-			msg := fmt.Sprintf("Issue occured when adding %d\x00th item to db.", n)
-			return nil, errors.New(msg)
+			return slice, itemsAdded, fmt.Errorf("issue occured when adding item %s to the db", entry)
 		}
 
 		slice = append(slice, item)
+		itemsAdded++
 	}
 
-	return slice, nil
+	return slice, itemsAdded, nil
 }
 
 // Deletes an item from the database, and returns a pointer to the item that was just deleted.

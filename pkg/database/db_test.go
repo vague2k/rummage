@@ -2,6 +2,7 @@ package database_test
 
 import (
 	"path/filepath"
+	"regexp"
 	"testing"
 	"time"
 
@@ -39,7 +40,6 @@ func TestInit(t *testing.T) {
 	assert.Equal(t, expectedDBFile, r.FilePath)
 }
 
-// NOTE: we do not need to test AddMultiItems() since it's just a for loop wrapped around AddItem()
 func TestAddItem(t *testing.T) {
 	r := newDb(t)
 
@@ -67,6 +67,47 @@ func TestAddItem(t *testing.T) {
 		item, err := r.AddItem("notagopackage")
 		assert.ErrorContains(t, err, "the item attempted to be added to the database does not resemble a go package")
 		assert.Nil(t, item)
+	})
+}
+
+func TestAddMultiItems(t *testing.T) {
+	t.Run("Can add item(s) that resembles a go package", func(t *testing.T) {
+		r := newDb(t)
+		items, amtAdded, err := r.AddMultiItems("github.com/gorilla/mux", "github.com/user/mux", "github.com/doesntexist/mux")
+		assert.NoError(t, err)
+		assert.Equal(t, 3, amtAdded)
+		for _, item := range items {
+			assert.Regexp(t, regexp.MustCompile(`^github\.com/(gorilla|user|doesntexist)/mux$`), item.Entry)
+			assert.Equal(t, 1.0, item.Score)
+			assert.Equal(t, time.Now().Unix(), item.LastAccessed)
+		}
+	})
+
+	t.Run("Returns 0 added if items already exist in db. 0/3", func(t *testing.T) {
+		r := newDb(t)
+		_, amtAdded, err := r.AddMultiItems("github.com/gorilla/mux", "github.com/user/mux", "github.com/doesntexist/mux")
+		assert.NoError(t, err)
+		assert.Equal(t, 3, amtAdded)
+
+		_, amtAgain, err := r.AddMultiItems("github.com/gorilla/mux", "github.com/user/mux", "github.com/doesntexist/mux")
+		assert.NoError(t, err)
+		assert.Equal(t, 0, amtAgain)
+	})
+
+	t.Run("Errors if item doesn't resemble a go package", func(t *testing.T) {
+		r := newDb(t)
+		items, amtAdded, err := r.AddMultiItems("notagopackage", "notanothergopackage")
+		assert.ErrorContains(t, err, "issue occured when adding item notagopackage to the db")
+		assert.Nil(t, items)
+		assert.Equal(t, 0, amtAdded)
+	})
+
+	t.Run("Returns correct amount of added packages. 2/3", func(t *testing.T) {
+		r := newDb(t)
+		items, amtAdded, err := r.AddMultiItems("github.com/gorilla/mux", "github.com/user/mux", "notagopackage")
+		assert.Error(t, err)
+		assert.NotNil(t, items)
+		assert.Equal(t, 2, amtAdded)
 	})
 }
 
@@ -113,7 +154,7 @@ func TestUpdateItem(t *testing.T) {
 
 func TestListItems(t *testing.T) {
 	r := newDb(t)
-	_, err := r.AddMultiItems("github.com/gorilla/mux", "github.com/gofiber/fiber/v2")
+	_, _, err := r.AddMultiItems("github.com/gorilla/mux", "github.com/gofiber/fiber/v2")
 	assert.NoError(t, err)
 
 	items, err := r.ListItems()
@@ -148,7 +189,7 @@ func TestDeleteItem(t *testing.T) {
 
 func TestEntryWithHighestScore(t *testing.T) {
 	r := newDb(t)
-	_, err := r.AddMultiItems("github.com/gorilla/mux", "github.com/user/mux", "github.com/doesntexist/mux")
+	_, _, err := r.AddMultiItems("github.com/gorilla/mux", "github.com/user/mux", "github.com/doesntexist/mux")
 	assert.NoError(t, err)
 	_, err = r.UpdateItem("github.com/gorilla/mux", 2.0)
 	assert.NoError(t, err)
@@ -176,7 +217,7 @@ func TestEntryWithHighestScore(t *testing.T) {
 
 func TestFindExactMatch(t *testing.T) {
 	r := newDb(t)
-	_, err := r.AddMultiItems("github.com/gorilla/mux", "github.com/user/mux", "github.com/doesntexist/mux")
+	_, _, err := r.AddMultiItems("github.com/gorilla/mux", "github.com/user/mux", "github.com/doesntexist/mux")
 	assert.NoError(t, err)
 
 	t.Run("Can find first occurence of substr (exact match)", func(t *testing.T) {
