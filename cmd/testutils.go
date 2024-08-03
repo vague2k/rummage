@@ -17,7 +17,9 @@ func execute(cmd *cobra.Command, args ...string) string {
 	cmd.SetOut(buf)
 	cmd.SetErr(buf)
 	cmd.SetArgs(args)
-	cmd.Execute()
+	if err := cmd.Execute(); err != nil {
+		panic(err)
+	}
 
 	return buf.String()
 }
