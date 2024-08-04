@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 
@@ -83,4 +84,19 @@ func Mock1outof3pkgs(t *testing.T) string {
 	}
 
 	return dir
+}
+
+// Use this for the "get" command tests.
+//
+// When running these tests locally it can affect our go.mod file,
+// which would need to get cleaned up after every test
+//
+// This is not the most clever way of handling this issue, but it's a whole
+// FUCK of alot easier then... idk say spinning up a docker container with
+// a dedicated go project directory just for these tests. And it suprisingly
+// works a lot better than I thought it would
+func GoModTidy(t *testing.T) {
+	cmd := exec.Command("go", "mod", "tidy")
+	err := cmd.Run()
+	assert.NoError(t, err)
 }
