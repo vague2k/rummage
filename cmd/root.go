@@ -21,6 +21,7 @@ func NewRootCmd(db database.RummageDbInterface) *cobra.Command {
 	rootCmd.AddCommand(newQueryCmd(db))
 	rootCmd.AddCommand(newAddCmd(db))
 	rootCmd.AddCommand(newRemoveCmd(db))
+	rootCmd.AddCommand(newGetCmd(db))
 
 	return rootCmd
 }
