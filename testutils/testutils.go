@@ -100,3 +100,8 @@ func GoModTidy(t *testing.T) {
 	err := cmd.Run()
 	assert.NoError(t, err)
 }
+
+// To be used in get_test.go, see the "NOTE" comment left in that file.
+func First8(s int64) string {
+	return fmt.Sprintf("%d", s)[:8]
+}

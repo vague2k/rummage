@@ -8,6 +8,12 @@ import (
 	"github.com/vague2k/rummage/testutils"
 )
 
+// NOTE: To fix the issue where github workflow has a discrepency where
+// LastAccessed field is asserted to be time.Now().Unix() fails because the value is off by 1,
+// We only can only check the first 8 digits of the Unix Epoch intead of all 10.
+// these tests do not need such preciseness
+// See testutils.First8()
+
 func TestGetHighestScore(t *testing.T) {
 	testutils.GoModTidy(t)
 	t.Cleanup(func() {
@@ -251,7 +257,7 @@ func TestGet(t *testing.T) {
 
 		assert.Contains(t, actual, "go: added github.com/gorilla/mux")
 		assert.Equal(t, 5.0, item.Score)
-		assert.Equal(t, time.Now().Unix(), item.LastAccessed)
+		assert.Equal(t, testutils.First8(time.Now().Unix()), testutils.First8(item.LastAccessed))
 		testutils.GoModTidy(t)
 	})
 
@@ -266,7 +272,7 @@ func TestGet(t *testing.T) {
 
 		assert.Contains(t, actual, "go: added github.com/gorilla/mux")
 		assert.Equal(t, 5.0, item.Score)
-		assert.Equal(t, time.Now().Unix(), item.LastAccessed)
+		assert.Equal(t, testutils.First8(time.Now().Unix()), testutils.First8(item.LastAccessed))
 		testutils.GoModTidy(t)
 	})
 
@@ -281,7 +287,7 @@ func TestGet(t *testing.T) {
 
 		assert.Contains(t, actual, "go: added github.com/gorilla/mux")
 		assert.Equal(t, 5.0, item.Score)
-		assert.Equal(t, time.Now().Unix(), item.LastAccessed)
+		assert.Equal(t, testutils.First8(time.Now().Unix()), testutils.First8(item.LastAccessed))
 		testutils.GoModTidy(t)
 	})
 
@@ -296,7 +302,7 @@ func TestGet(t *testing.T) {
 
 		assert.Contains(t, actual, "go: added github.com/gorilla/mux")
 		assert.Equal(t, 5.0, item.Score)
-		assert.Equal(t, time.Now().Unix(), item.LastAccessed)
+		assert.Equal(t, testutils.First8(time.Now().Unix()), testutils.First8(item.LastAccessed))
 		testutils.GoModTidy(t)
 	})
 }
@@ -321,9 +327,9 @@ func TestMultipleGet(t *testing.T) {
 		assert.Contains(t, actual, "go: added github.com/gorilla/mux")
 		assert.Contains(t, actual, "go: added github.com/gofiber/fiber/v2")
 		assert.Equal(t, 5.0, mux.Score)
-		assert.Equal(t, time.Now().Unix(), mux.LastAccessed)
+		assert.Equal(t, testutils.First8(time.Now().Unix()), testutils.First8(mux.LastAccessed))
 		assert.Equal(t, 5.0, fiber.Score)
-		assert.Equal(t, time.Now().Unix(), fiber.LastAccessed)
+		assert.Equal(t, testutils.First8(time.Now().Unix()), testutils.First8(fiber.LastAccessed))
 		testutils.GoModTidy(t)
 	})
 
@@ -341,9 +347,9 @@ func TestMultipleGet(t *testing.T) {
 		assert.Contains(t, actual, "go: added github.com/gorilla/mux")
 		assert.Contains(t, actual, "go: added github.com/gofiber/fiber/v2")
 		assert.Equal(t, 5.0, mux.Score)
-		assert.Equal(t, time.Now().Unix(), mux.LastAccessed)
+		assert.Equal(t, testutils.First8(time.Now().Unix()), testutils.First8(mux.LastAccessed))
 		assert.Equal(t, 5.0, fiber.Score)
-		assert.Equal(t, time.Now().Unix(), fiber.LastAccessed)
+		assert.Equal(t, testutils.First8(time.Now().Unix()), testutils.First8(fiber.LastAccessed))
 		testutils.GoModTidy(t)
 	})
 
@@ -361,9 +367,9 @@ func TestMultipleGet(t *testing.T) {
 		assert.Contains(t, actual, "go: added github.com/gorilla/mux")
 		assert.Contains(t, actual, "go: added github.com/gofiber/fiber/v2")
 		assert.Equal(t, 5.0, mux.Score)
-		assert.Equal(t, time.Now().Unix(), mux.LastAccessed)
+		assert.Equal(t, testutils.First8(time.Now().Unix()), testutils.First8(mux.LastAccessed))
 		assert.Equal(t, 5.0, fiber.Score)
-		assert.Equal(t, time.Now().Unix(), fiber.LastAccessed)
+		assert.Equal(t, testutils.First8(time.Now().Unix()), testutils.First8(fiber.LastAccessed))
 		testutils.GoModTidy(t)
 	})
 
@@ -381,9 +387,9 @@ func TestMultipleGet(t *testing.T) {
 		assert.Contains(t, actual, "go: added github.com/gorilla/mux")
 		assert.Contains(t, actual, "go: added github.com/gofiber/fiber/v2")
 		assert.Equal(t, 5.0, mux.Score)
-		assert.Equal(t, time.Now().Unix(), mux.LastAccessed)
+		assert.Equal(t, testutils.First8(time.Now().Unix()), testutils.First8(mux.LastAccessed))
 		assert.Equal(t, 5.0, fiber.Score)
-		assert.Equal(t, time.Now().Unix(), fiber.LastAccessed)
+		assert.Equal(t, testutils.First8(time.Now().Unix()), testutils.First8(fiber.LastAccessed))
 		testutils.GoModTidy(t)
 	})
 }
