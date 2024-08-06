@@ -1,41 +1,37 @@
-<h1 align="center">Rummage</h1>
-<h3 align="center">A smart wrapper for "go get"</h3>
+<div align="center">
+    <h1>Rummage</h1>
+    <h3>A smart wrapper for "go get"</h3>
+    <p>Rummage lets you get the packages you use most often with only a few keystrokes. <br>No more typing full package paths or copy pasting.</br></p>
+</div>
 
 ![rummage](https://github.com/vague2k/huez.nvim/assets/121782036/b9a85105-763e-4312-836b-eddb7b53408b)
 
 ## Installation
 
-```
-go install github.com/vague2k/rummage
-```
-
-## Alias
-
-If you'd like a shorthand for the get command, you put this in your .zshrc/.bashrc file
+If you would like to install the latest version of a tag, substitue the version number for `@latest`
 
 ```
-alias rum="rummage get"
+go install github.com/vague2k/rummage@3.0.0
 ```
 
-## Usage
+## Getting Started
 
-Before using rummage regularly, It's reccommended that you use
+Here's a list of commands available to rummage. Any command that supports arguements can take multiple arguement by default.
 
-```
-rummage populate
-```
+Use the help flag on any command to get more info about it
 
-This will get the database up to speed with the third party packages you have already installed.
+| rummage [COMMAND] | Description                                                                                    |
+| ----------------- | ---------------------------------------------------------------------------------------------- |
+| `add`             | Add an item that resembles a go package manually to the database.                              |
+| `remove`          | Remove items from the database or be prompted to confirm to remove all items.                  |
+| `get`             | Get a go package from the database using a substring, or get a package how you normally would. |
+| `populate`        | Populate the database with third party packages already known by go.                           |
+| `query`           | Query the database to find an entry by highest score, or using an exact match.                 |
 
-| rummage [COMMAND] | Description                                                              |
-| ----------------- | ------------------------------------------------------------------------ |
-| `add`             | Add a package to the database.                                           |
-| `remove`          | Removes a package from the database.                                     |
-| `get`             | Gets a go package from the database, and increase its recency score.     |
-| `populate`        | Add already installed packages to the database to quickstart your usage. |
-| `query`           | Query the database to find a package.                                    |
+Before using rummage regularly, It's reccommended that you use `populate` as
+this will get the database up to speed with the third party packages you have already installed.
 
-## 📋 Contributing
+## Contributing
 
 Issues and PR's are always welcome and highly encouraged! I would love to learn more.
 
