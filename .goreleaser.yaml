@@ -22,5 +22,4 @@ builds:
       - -trimpath
 
 checksum:
-  name_template: "rummage_checksum.txt"
-
+  name_template: "checksums.txt"

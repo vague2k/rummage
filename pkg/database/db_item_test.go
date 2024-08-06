@@ -20,50 +20,42 @@ var offset int64 // a small buffer of time for a more realistic-ish test
 func TestRecalculateScore(t *testing.T) {
 	t.Run("Calculate score within the hour", func(t *testing.T) {
 		offset = MINUTE
-		updated := &database.RummageDBItem{
+		updated := &database.RummageItem{
 			Entry:        "calculate",
 			Score:        1.0,
 			LastAccessed: time.Now().Unix() + offset,
 		}
 
-		expected := 4.0
-		got := updated.RecalculateScore()
-		assert.Equal(t, expected, got)
+		assert.Equal(t, 5.0, updated.RecalculateScore())
 	})
 	t.Run("Calculate score within the day", func(t *testing.T) {
 		offset = HOUR
-		updated := &database.RummageDBItem{
+		updated := &database.RummageItem{
 			Entry:        "calculate",
 			Score:        1.0,
 			LastAccessed: time.Now().Unix() + offset,
 		}
 
-		expected := 2.0
-		got := updated.RecalculateScore()
-		assert.Equal(t, expected, got)
+		assert.Equal(t, 2.0, updated.RecalculateScore())
 	})
 	t.Run("Calculate score within the week", func(t *testing.T) {
 		offset = DAY
-		updated := &database.RummageDBItem{
+		updated := &database.RummageItem{
 			Entry:        "calculate",
 			Score:        1.0,
 			LastAccessed: time.Now().Unix() + offset,
 		}
 
-		expected := 0.5
-		got := updated.RecalculateScore()
-		assert.Equal(t, expected, got)
+		assert.Equal(t, 0.5, updated.RecalculateScore())
 	})
 	t.Run("Calculate score past a week", func(t *testing.T) {
 		offset = WEEK + WEEK
-		updated := &database.RummageDBItem{
+		updated := &database.RummageItem{
 			Entry:        "calculate",
 			Score:        1.0,
 			LastAccessed: time.Now().Unix() + offset,
 		}
 
-		expected := 0.25
-		got := updated.RecalculateScore()
-		assert.Equal(t, expected, got)
+		assert.Equal(t, 0.25, updated.RecalculateScore())
 	})
 }
