@@ -9,7 +9,7 @@ import (
 func newGetCmd(db database.RummageDbInterface) *cobra.Command {
 	getCmd := &cobra.Command{
 		Use:   "get",
-		Short: "Get a go package ",
+		Short: "Get a go package from the database using a substring, or get a package how you normally would",
 		Run: func(cmd *cobra.Command, args []string) {
 			commands.Get(cmd, args, db)
 		},

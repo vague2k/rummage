@@ -52,7 +52,7 @@ func Init(path string) (*RummageDb, error) {
 	} else {
 		dir = filepath.Join(path, "rummage")
 		dbFile = filepath.Join(dir, "rummage.db")
-		err := os.MkdirAll(dir, 0777)
+		err := os.MkdirAll(dir, 0o777)
 		if err != nil {
 			return nil, fmt.Errorf("could not create db dir: \n%s", err)
 		}
