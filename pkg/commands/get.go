@@ -24,7 +24,7 @@ func goGet(cobra *cobra.Command, pkg string, flags ...string) error {
 	b, err := cmd.CombinedOutput()
 	output := string(b)
 	if err != nil {
-		return fmt.Errorf(output)
+		return fmt.Errorf("%s", output)
 	}
 
 	cobra.Print(output)
