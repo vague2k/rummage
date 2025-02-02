@@ -11,7 +11,7 @@
 If you would like to install the latest version of a tag, substitue the version number for `@latest`
 
 ```
-go install github.com/vague2k/rummage@3.0.0
+go install github.com/vague2k/rummage@3.0.2
 ```
 
 ## Getting Started
