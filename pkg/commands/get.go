@@ -14,9 +14,13 @@ import (
 // attempts to call "go get" against an arg and also takes into account any flags "go get" may accept
 func goGet(cobra *cobra.Command, pkg string, flags ...string) error {
 	cmd := exec.Command("go", "get")
-	if flags == nil {
+	if flags == nil && pkg != "" {
 		cmd.Args = append(cmd.Args, pkg)
+	}
+	if pkg == "" {
+		cmd.Args = append(cmd.Args, flags...)
 	} else {
+		cobra.Print("pkgs and flags")
 		cmd.Args = append(cmd.Args, flags...)
 		cmd.Args = append(cmd.Args, pkg)
 	}
@@ -92,6 +96,13 @@ func getFlags(flagMap map[string]bool) []string {
 	return flags
 }
 
+func handleFlagsNoPkg(cmd *cobra.Command, flags ...string) {
+	err := goGet(cmd, "", flags...)
+	if err != nil {
+		cmd.PrintErrf("%s\n", err)
+	}
+}
+
 // the "get" command attempts to get a package based on a couple criteria.
 //
 // If the arguement (not flag) passed to "get" has 2 slashes or more, it's assumed the item does not yet exist
@@ -112,6 +123,12 @@ func Get(cmd *cobra.Command, args []string, db database.RummageDbInterface) {
 	}
 
 	flags := getFlags(flagMap)
+
+	if len(args) == 0 && len(flags) > 0 {
+		handleFlagsNoPkg(cmd, flags...)
+		return
+	}
+
 	for _, arg := range args {
 		arg = strings.ToLower(arg)
 		if strings.Count(arg, "/") >= 2 {

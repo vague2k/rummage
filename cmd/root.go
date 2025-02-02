@@ -8,7 +8,7 @@ import (
 func NewRootCmd(db database.RummageDbInterface) *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:     "rummage [command]",
-		Version: "3.0.1",
+		Version: "3.0.2",
 		Short:   "A smart wrapper around 'go get'",
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := cmd.Help(); err != nil {
