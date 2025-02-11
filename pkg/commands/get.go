@@ -20,7 +20,6 @@ func goGet(cobra *cobra.Command, pkg string, flags ...string) error {
 	if pkg == "" {
 		cmd.Args = append(cmd.Args, flags...)
 	} else {
-		cobra.Print("pkgs and flags")
 		cmd.Args = append(cmd.Args, flags...)
 		cmd.Args = append(cmd.Args, pkg)
 	}
