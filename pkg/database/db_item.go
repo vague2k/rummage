@@ -26,13 +26,13 @@ const (
 func (i *RummageItem) RecalculateScore() float64 {
 	var score float64
 
-	duration := i.LastAccessed - time.Now().Unix()
+	duration := time.Now().Unix() - i.LastAccessed
 
 	// the older the time, the lower the score
 	if duration < _HOUR {
 		score = i.Score + 4.0
 	} else if duration < _DAY {
-		score = i.Score * 2.0
+		score = i.Score + 2.0
 	} else if duration < _WEEK {
 		score = i.Score * 0.5
 	} else {
