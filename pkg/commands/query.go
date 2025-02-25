@@ -8,12 +8,10 @@ import (
 	"github.com/vague2k/rummage/pkg/database"
 )
 
-// The Query command lets a user query the database against an arg to return the entry.
-// By default with no flags the query will search based on highest score, if the "--exact" flag is true,
-// it will simply do a strings.contains search.
+// The Query command lets a user query the database against an arg to output a list of
+// entries (10 by default) sorted by score.
 //
-// You can view other info like the entry's score and last-accessed field by setting the respective flags,
-// "--score", "--last-accessed"
+// the quantity of matches in the output can be changed with the "--quantity" flag
 func Query(cmd *cobra.Command, arg string, db database.RummageDbInterface) {
 	quantityFlag, err := cmd.Flags().GetInt("quantity")
 	if err != nil {

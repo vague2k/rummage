@@ -15,6 +15,9 @@ import (
 	"github.com/vague2k/rummage/utils"
 )
 
+// why does this interface exist even though there's only 1 implementation
+//
+// because it makes my life writing tests very easy.
 type RummageDbInterface interface {
 	AddItem(entry string) (*RummageItem, error)
 	AddMultiItems(entries ...string) ([]*RummageItem, int, error)
@@ -232,6 +235,9 @@ func (r *RummageDb) EntryWithHighestScore(substr string) (*RummageItem, error) {
 	return highestMatch, nil
 }
 
+// Finds top n matches in the database based on a substr, sorted in descending by score
+//
+// No matches is treated as an error
 func (r *RummageDb) FindTopNMatches(substr string, n int) ([]*RummageItem, error) {
 	items, err := r.ListItems()
 	if err != nil {

@@ -6,7 +6,6 @@ import (
 	"github.com/vague2k/rummage/pkg/database"
 )
 
-// TODO: add docs for new functionality / tests
 func newQueryCmd(db database.RummageDbInterface) *cobra.Command {
 	queryCmd := &cobra.Command{
 		Use:   "query",
