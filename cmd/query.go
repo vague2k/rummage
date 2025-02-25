@@ -17,7 +17,7 @@ func newQueryCmd(db database.RummageDbInterface) *cobra.Command {
 		},
 	}
 
-	queryCmd.Flags().IntP("quantity", "p", 10, "")
+	queryCmd.Flags().IntP("quantity", "q", 10, "")
 
 	return queryCmd
 }
