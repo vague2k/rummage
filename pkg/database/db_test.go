@@ -9,17 +9,12 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/vague2k/rummage/pkg/database"
+	"github.com/vague2k/rummage/testutils"
 )
 
 // Spin up an in memory db (since we're using sqlite3) for quick testing
 func inMemDb(t *testing.T) *database.RummageDb {
-	r, err := database.Init(":memory:")
-	assert.NoError(t, err)
-	t.Cleanup(func() {
-		r.Close()
-		r = nil
-	})
-	return r
+	return testutils.InMemDb(t)
 }
 
 // Actual test cases should are in seperate t.Run() instances, unless the test is reasonable concise enough to
