@@ -6,6 +6,7 @@ import (
 	"github.com/vague2k/rummage/pkg/database"
 )
 
+// TODO: add docs for new functionality / tests
 func newQueryCmd(db database.RummageDbInterface) *cobra.Command {
 	queryCmd := &cobra.Command{
 		Use:   "query",
@@ -17,9 +18,7 @@ func newQueryCmd(db database.RummageDbInterface) *cobra.Command {
 		},
 	}
 
-	queryCmd.Flags().BoolP("exact", "e", false, "Query the database to find an entry using an exact search, instead of by highest score")
-	queryCmd.Flags().BoolP("score", "s", false, "Display the query's score")
-	queryCmd.Flags().BoolP("last-accessed", "l", false, "Display the last accessed timestamp of the query in Unix seconds")
+	queryCmd.Flags().IntP("quantity", "p", 10, "")
 
 	return queryCmd
 }

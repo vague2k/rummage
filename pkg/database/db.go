@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 
@@ -21,7 +22,7 @@ type RummageDbInterface interface {
 	DeleteAllItems() error
 	DeleteItem(entry string) (*RummageItem, error)
 	EntryWithHighestScore(substr string) (*RummageItem, error)
-	FindExactMatch(substr string) (*RummageItem, error)
+	FindTopNMatches(substr string, n int) ([]*RummageItem, error)
 	ListItems() ([]*RummageItem, error)
 	SelectItem(entry string) (*RummageItem, error)
 	UpdateItem(entry string, score float64, lastAccessed int64) (*RummageItem, error)
@@ -231,28 +232,34 @@ func (r *RummageDb) EntryWithHighestScore(substr string) (*RummageItem, error) {
 	return highestMatch, nil
 }
 
-// Finds a matching entry against a substr for all items in the database.
-//
-// If the item does not exist, returns nil, false
-func (r *RummageDb) FindExactMatch(substr string) (*RummageItem, error) {
+func (r *RummageDb) FindTopNMatches(substr string, n int) ([]*RummageItem, error) {
 	items, err := r.ListItems()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	var exactMatch *RummageItem
+	// Filter items that contain the substring
+	var filtered []*RummageItem
 	for _, item := range items {
 		if strings.Contains(item.Entry, substr) {
-			exactMatch = item
-			break
+			filtered = append(filtered, item)
 		}
 	}
 
-	if exactMatch == nil {
+	if len(filtered) == 0 {
 		return nil, fmt.Errorf("no match found with the given arguement %s", substr)
 	}
 
-	return exactMatch, nil
+	// Sort by score in descending order
+	sort.Slice(filtered, func(i, j int) bool {
+		return filtered[i].Score > filtered[j].Score
+	})
+
+	// Return top N matches, ensuring we don't exceed the slice bounds
+	if len(filtered) > n {
+		return filtered[:n], nil
+	}
+	return filtered, nil
 }
 
 // Adds multiple items to the db and returns []*RummageDBItem along with the number of items added

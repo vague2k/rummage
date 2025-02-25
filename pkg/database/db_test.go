@@ -1,6 +1,7 @@
 package database_test
 
 import (
+	"fmt"
 	"path/filepath"
 	"regexp"
 	"testing"
@@ -216,23 +217,38 @@ func TestEntryWithHighestScore(t *testing.T) {
 	})
 }
 
-func TestFindExactMatch(t *testing.T) {
+func TestFindTopNMatches(t *testing.T) {
 	r := inMemDb(t)
-	_, _, err := r.AddMultiItems("github.com/gorilla/mux", "github.com/user/mux", "github.com/doesntexist/mux")
-	assert.NoError(t, err)
+	for i := range 10 {
+		fakePkg := fmt.Sprintf("github.com/user%d/mux", i)
 
-	t.Run("Can find first occurence of substr (exact match)", func(t *testing.T) {
-		item, err := r.FindExactMatch("mux")
+		_, err := r.AddItem(fakePkg)
 		assert.NoError(t, err)
-		assert.NotNil(t, item)
 
-		assert.Equal(t, "github.com/gorilla/mux", item.Entry)
-		assert.Equal(t, 1.0, item.Score)
-		assert.Equal(t, time.Now().Unix(), item.LastAccessed)
+		_, err = r.UpdateItem(fakePkg, float64(i), int64(i))
+		assert.NoError(t, err)
+	}
+
+	t.Run("Returns slice of items sorted by score", func(t *testing.T) {
+		items, err := r.FindTopNMatches("mux", 10)
+		assert.NoError(t, err)
+
+		for i := len(items); i > len(items); i-- {
+			fakePkg := fmt.Sprintf("github.com/user%d/mux", i-1)
+			assert.Equal(t, float64(i-1), items[i].Score)
+			assert.Equal(t, fakePkg, items[i].Entry)
+		}
+		for i, item := range items {
+			fakePkg := fmt.Sprintf("github.com/user%d/mux", len(items)-i-1)
+			assert.Equal(t, float64(len(items)-i-1), item.Score)
+			assert.Equal(t, fakePkg, item.Entry)
+		}
 	})
 
+	// items still exist in the test db instance at this point
 	t.Run("Errors if no exact match was found", func(t *testing.T) {
-		item, err := r.FindExactMatch("doesnotexist")
+		item, err := r.FindTopNMatches("doesnotexist", 10)
+		assert.Error(t, err)
 		assert.ErrorContains(t, err, "no match found with the given arguement doesnotexist")
 		assert.Nil(t, item)
 	})
