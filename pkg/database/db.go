@@ -12,6 +12,7 @@ import (
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/vague2k/rummage/pkg/config"
 	"github.com/vague2k/rummage/utils"
 )
 
@@ -19,6 +20,7 @@ import (
 //
 // because it makes my life writing tests very easy.
 type RummageDbInterface interface {
+	Version() string
 	AddItem(entry string) (*RummageItem, error)
 	AddMultiItems(entries ...string) ([]*RummageItem, int, error)
 	Close()
@@ -38,6 +40,7 @@ type RummageDb struct {
 	Sqlite   *sql.DB // Pointer to the underlying sqlite database
 	Dir      string  // The parent directory of the database
 	FilePath string  // the database path
+	version  string
 }
 
 // Initializes the rummage db, returning a pointer to the db instance.
@@ -78,13 +81,20 @@ func Init(path string) (*RummageDb, error) {
 		return nil, fmt.Errorf("could not create 'items' table in rummage db: \n%s", err)
 	}
 
+	conf := config.SetVersions()
+
 	instance := &RummageDb{
 		Sqlite:   database,
 		Dir:      dir,
 		FilePath: dbFile,
+		version:  conf.Rummage.DbApiVersion,
 	}
 
 	return instance, nil
+}
+
+func (r *RummageDb) Version() string {
+	return r.version
 }
 
 func (r *RummageDb) Close() {
