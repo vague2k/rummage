@@ -149,16 +149,6 @@ func TestUpdateItem(t *testing.T) {
 	})
 }
 
-func TestListItems(t *testing.T) {
-	r := inMemDb(t)
-	_, _, err := r.AddMultiItems("github.com/gorilla/mux", "github.com/gofiber/fiber/v2")
-	assert.NoError(t, err)
-
-	items, err := r.ListItems()
-	assert.NoError(t, err)
-	assert.Len(t, items, 2)
-}
-
 func TestDeleteItem(t *testing.T) {
 	r := inMemDb(t)
 	_, err := r.AddItem("github.com/gorilla/mux")

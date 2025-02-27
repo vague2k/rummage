@@ -3,11 +3,9 @@ package database
 import (
 	"database/sql"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"regexp"
-	"strings"
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -27,7 +25,6 @@ type RummageDbInterface interface {
 	DeleteItem(entry string) (*RummageItem, error)
 	EntryWithHighestScore(substr string) (*RummageItem, error)
 	FindTopNMatches(substr string, n int) ([]*RummageItem, error)
-	ListItems() ([]*RummageItem, error)
 	SelectItem(entry string) (*RummageItem, error)
 	UpdateItem(entry string, score float64, lastAccessed int64) (*RummageItem, error)
 }
@@ -185,66 +182,21 @@ func (r *RummageDb) UpdateItem(entry string, score float64, lastAccessed int64) 
 	return updatedItem, nil
 }
 
-// List all items in the db, returning []RummageDBItem
-func (r *RummageDb) ListItems() ([]*RummageItem, error) {
-	rows, err := r.Sqlite.Query("SELECT * FROM items")
-	if err != nil {
-		return nil, fmt.Errorf("could not get items from db: \n%s", err)
-	}
-
-	var items []*RummageItem
-	for rows.Next() {
-		var entry string
-		var score float64
-		var lastAccessed int64
-
-		err := rows.Scan(&entry, &score, &lastAccessed)
-		if err != nil {
-			return nil, fmt.Errorf("issue occured trying to scan a db item: \n%s", err)
-		}
-
-		nextItem := &RummageItem{
-			Entry:        entry,
-			Score:        score,
-			LastAccessed: lastAccessed,
-		}
-
-		items = append(items, nextItem)
-	}
-
-	return items, nil
-}
-
 // Searches the db for an entry that matches a substring "substr",
 // if multiple matches are found, the item with the highest scores is returned
 //
 // No matches is treated as an error
 func (r *RummageDb) EntryWithHighestScore(substr string) (*RummageItem, error) {
-	items, err := r.ListItems()
-	if err != nil {
-		log.Fatal(err)
-	}
+	var item RummageItem
 
-	if len(items) == 1 {
-		return items[0], nil
-	}
+	row := r.Sqlite.QueryRow("SELECT * FROM items WHERE entry LIKE ? ORDER BY score DESC LIMIT 1", "%"+substr+"%")
 
-	var curr float64
-	var highestMatch *RummageItem
-	for _, item := range items {
-		if strings.Contains(item.Entry, substr) {
-			if item.Score > curr {
-				highestMatch = item
-				curr = item.Score
-			}
-		}
-	}
-
-	if highestMatch == nil {
+	err := row.Scan(&item.Entry, &item.Score, &item.LastAccessed)
+	if err != nil && err == sql.ErrNoRows {
 		return nil, fmt.Errorf("no match found with the given arguement %s", substr)
 	}
 
-	return highestMatch, nil
+	return &item, nil
 }
 
 // Finds top n matches in the database based on a substr, sorted in descending by score
