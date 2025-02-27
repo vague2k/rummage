@@ -9,7 +9,7 @@
 ## Installation
 
 ```
-go install github.com/vague2k/rummage@3.1.0
+go install github.com/vague2k/rummage
 ```
 
 ## Getting Started
