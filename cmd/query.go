@@ -17,9 +17,7 @@ func newQueryCmd(db database.RummageDbInterface) *cobra.Command {
 		},
 	}
 
-	queryCmd.Flags().BoolP("exact", "e", false, "Query the database to find an entry using an exact search, instead of by highest score")
-	queryCmd.Flags().BoolP("score", "s", false, "Display the query's score")
-	queryCmd.Flags().BoolP("last-accessed", "l", false, "Display the last accessed timestamp of the query in Unix seconds")
+	queryCmd.Flags().IntP("quantity", "q", 10, "The amount of entry matches to display in the output")
 
 	return queryCmd
 }

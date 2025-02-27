@@ -11,17 +11,22 @@ import (
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/vague2k/rummage/pkg/config"
 	"github.com/vague2k/rummage/utils"
 )
 
+// why does this interface exist even though there's only 1 implementation
+//
+// because it makes my life writing tests very easy.
 type RummageDbInterface interface {
+	Version() string
 	AddItem(entry string) (*RummageItem, error)
 	AddMultiItems(entries ...string) ([]*RummageItem, int, error)
 	Close()
 	DeleteAllItems() error
 	DeleteItem(entry string) (*RummageItem, error)
 	EntryWithHighestScore(substr string) (*RummageItem, error)
-	FindExactMatch(substr string) (*RummageItem, error)
+	FindTopNMatches(substr string, n int) ([]*RummageItem, error)
 	ListItems() ([]*RummageItem, error)
 	SelectItem(entry string) (*RummageItem, error)
 	UpdateItem(entry string, score float64, lastAccessed int64) (*RummageItem, error)
@@ -34,21 +39,27 @@ type RummageDb struct {
 	Sqlite   *sql.DB // Pointer to the underlying sqlite database
 	Dir      string  // The parent directory of the database
 	FilePath string  // the database path
+	version  string
 }
 
 // Initializes the rummage db, returning a pointer to the db instance.
 //
 // Init() also makes sure the "items" table exists.
 func Init(path string) (*RummageDb, error) {
+	var ver string
 	if path == "" {
 		dataDir := utils.UserDataDir()
 		path = dataDir
+
+		conf := config.SetVersions()
+		ver = conf.Rummage.DbApiVersion
 	}
 
 	var dir string
 	var dbFile string
 	if path == ":memory:" {
 		dbFile = ":memory:"
+		ver = ""
 	} else {
 		dir = filepath.Join(path, "rummage")
 		dbFile = filepath.Join(dir, "rummage.db")
@@ -78,9 +89,14 @@ func Init(path string) (*RummageDb, error) {
 		Sqlite:   database,
 		Dir:      dir,
 		FilePath: dbFile,
+		version:  ver,
 	}
 
 	return instance, nil
+}
+
+func (r *RummageDb) Version() string {
+	return r.version
 }
 
 func (r *RummageDb) Close() {
@@ -231,28 +247,35 @@ func (r *RummageDb) EntryWithHighestScore(substr string) (*RummageItem, error) {
 	return highestMatch, nil
 }
 
-// Finds a matching entry against a substr for all items in the database.
+// Finds top n matches in the database based on a substr, sorted in descending by score
 //
-// If the item does not exist, returns nil, false
-func (r *RummageDb) FindExactMatch(substr string) (*RummageItem, error) {
-	items, err := r.ListItems()
+// No matches is treated as an error
+func (r *RummageDb) FindTopNMatches(substr string, n int) ([]*RummageItem, error) {
+	rows, err := r.Sqlite.Query(
+		"SELECT * FROM items WHERE entry LIKE ? ORDER BY score DESC LIMIT ?",
+		"%"+substr+"%", n,
+	)
 	if err != nil {
-		log.Fatal(err)
+		return nil, fmt.Errorf("could not get items from db: \n%s", err)
 	}
 
-	var exactMatch *RummageItem
-	for _, item := range items {
-		if strings.Contains(item.Entry, substr) {
-			exactMatch = item
-			break
+	items := make([]*RummageItem, 0, n)
+	for rows.Next() {
+		nextItem := &RummageItem{}
+
+		err := rows.Scan(&nextItem.Entry, &nextItem.Score, &nextItem.LastAccessed)
+		if err != nil {
+			return nil, fmt.Errorf("issue occured trying to scan a db item: \n%s", err)
 		}
+
+		items = append(items, nextItem)
 	}
 
-	if exactMatch == nil {
+	if len(items) == 0 {
 		return nil, fmt.Errorf("no match found with the given arguement %s", substr)
 	}
 
-	return exactMatch, nil
+	return items, nil
 }
 
 // Adds multiple items to the db and returns []*RummageDBItem along with the number of items added
