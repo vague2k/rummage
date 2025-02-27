@@ -17,6 +17,10 @@ func NewRootCmd(db database.RummageDbInterface) *cobra.Command {
 				panic(err)
 			}
 
+			// the "Version" field in the cobra.Command struct can't be used because
+			// that would cause me to pass in "config" as a param affecting tests.
+			//
+			// right now it's not worth refactoring all that code when I could just do this, and just mark both flags as mutually exclusive
 			if flags["apiver"] {
 				cmd.Printf("rummage database api version %s\n", db.Version())
 				return
@@ -37,6 +41,7 @@ func NewRootCmd(db database.RummageDbInterface) *cobra.Command {
 
 	rootCmd.Flags().BoolP("apiver", "a", false, "outputs the current version of the rummage database api")
 	rootCmd.Flags().BoolP("version", "v", false, "outputs the current rummage version")
+	rootCmd.MarkFlagsMutuallyExclusive("version", "apiver")
 
 	rootCmd.AddCommand(newPopulateCmd(db))
 	rootCmd.AddCommand(newQueryCmd(db))
