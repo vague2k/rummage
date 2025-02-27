@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"sort"
 	"strings"
 	"time"
 
@@ -252,33 +251,31 @@ func (r *RummageDb) EntryWithHighestScore(substr string) (*RummageItem, error) {
 //
 // No matches is treated as an error
 func (r *RummageDb) FindTopNMatches(substr string, n int) ([]*RummageItem, error) {
-	items, err := r.ListItems()
+	rows, err := r.Sqlite.Query(
+		"SELECT * FROM items WHERE entry LIKE ? ORDER BY score DESC LIMIT ?",
+		"%"+substr+"%", n,
+	)
 	if err != nil {
-		log.Fatal(err)
+		return nil, fmt.Errorf("could not get items from db: \n%s", err)
 	}
 
-	// Filter items that contain the substring
-	var filtered []*RummageItem
-	for _, item := range items {
-		if strings.Contains(item.Entry, substr) {
-			filtered = append(filtered, item)
+	items := make([]*RummageItem, 0, n)
+	for rows.Next() {
+		nextItem := &RummageItem{}
+
+		err := rows.Scan(&nextItem.Entry, &nextItem.Score, &nextItem.LastAccessed)
+		if err != nil {
+			return nil, fmt.Errorf("issue occured trying to scan a db item: \n%s", err)
 		}
+
+		items = append(items, nextItem)
 	}
 
-	if len(filtered) == 0 {
+	if len(items) == 0 {
 		return nil, fmt.Errorf("no match found with the given arguement %s", substr)
 	}
 
-	// Sort by score in descending order
-	sort.Slice(filtered, func(i, j int) bool {
-		return filtered[i].Score > filtered[j].Score
-	})
-
-	// Return top N matches, ensuring we don't exceed the slice bounds
-	if len(filtered) > n {
-		return filtered[:n], nil
-	}
-	return filtered, nil
+	return items, nil
 }
 
 // Adds multiple items to the db and returns []*RummageDBItem along with the number of items added
