@@ -23,7 +23,7 @@ func TestRecalculateScore(t *testing.T) {
 		updated := &database.RummageItem{
 			Entry:        "calculate",
 			Score:        1.0,
-			LastAccessed: time.Now().Unix() + offset,
+			LastAccessed: time.Now().Unix() - offset,
 		}
 
 		assert.Equal(t, 5.0, updated.RecalculateScore())
@@ -33,17 +33,17 @@ func TestRecalculateScore(t *testing.T) {
 		updated := &database.RummageItem{
 			Entry:        "calculate",
 			Score:        1.0,
-			LastAccessed: time.Now().Unix() + offset,
+			LastAccessed: time.Now().Unix() - offset,
 		}
 
-		assert.Equal(t, 2.0, updated.RecalculateScore())
+		assert.Equal(t, 3.0, updated.RecalculateScore())
 	})
 	t.Run("Calculate score within the week", func(t *testing.T) {
 		offset = DAY
 		updated := &database.RummageItem{
 			Entry:        "calculate",
 			Score:        1.0,
-			LastAccessed: time.Now().Unix() + offset,
+			LastAccessed: time.Now().Unix() - offset,
 		}
 
 		assert.Equal(t, 0.5, updated.RecalculateScore())
@@ -53,7 +53,7 @@ func TestRecalculateScore(t *testing.T) {
 		updated := &database.RummageItem{
 			Entry:        "calculate",
 			Score:        1.0,
-			LastAccessed: time.Now().Unix() + offset,
+			LastAccessed: time.Now().Unix() - offset,
 		}
 
 		assert.Equal(t, 0.25, updated.RecalculateScore())
