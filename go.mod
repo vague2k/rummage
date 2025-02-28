@@ -3,7 +3,6 @@ module github.com/vague2k/rummage
 go 1.23.0
 
 require (
-	github.com/BurntSushi/toml v1.4.0
 	github.com/mattn/go-sqlite3 v1.14.24
 	github.com/spf13/cobra v1.9.1
 	github.com/stretchr/testify v1.10.0

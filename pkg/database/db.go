@@ -9,7 +9,6 @@ import (
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
-	"github.com/vague2k/rummage/pkg/config"
 	"github.com/vague2k/rummage/utils"
 )
 
@@ -43,20 +42,15 @@ type RummageDb struct {
 //
 // Init() also makes sure the "items" table exists.
 func Init(path string) (*RummageDb, error) {
-	var ver string
 	if path == "" {
 		dataDir := utils.UserDataDir()
 		path = dataDir
-
-		conf := config.SetVersions()
-		ver = conf.Rummage.DbApiVersion
 	}
 
 	var dir string
 	var dbFile string
 	if path == ":memory:" {
 		dbFile = ":memory:"
-		ver = ""
 	} else {
 		dir = filepath.Join(path, "rummage")
 		dbFile = filepath.Join(dir, "rummage.db")
@@ -86,7 +80,7 @@ func Init(path string) (*RummageDb, error) {
 		Sqlite:   database,
 		Dir:      dir,
 		FilePath: dbFile,
-		version:  ver,
+		version:  "v4.0.1",
 	}
 
 	return instance, nil
