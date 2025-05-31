@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -12,7 +13,7 @@ import (
 // entries (10 by default) sorted by score.
 //
 // the quantity of matches in the output can be changed with the "--quantity" flag
-func Query(cmd *cobra.Command, arg string, db database.RummageDbInterface) {
+func Query(cmd *cobra.Command, arg string, db *database.Queries, ctx context.Context) {
 	quantityFlag, err := cmd.Flags().GetInt("quantity")
 	if err != nil {
 		cmd.PrintErrf("%s\n", err)
@@ -20,7 +21,10 @@ func Query(cmd *cobra.Command, arg string, db database.RummageDbInterface) {
 	}
 
 	arg = strings.ToLower(arg)
-	items, err := db.FindTopNMatches(arg, quantityFlag)
+	items, err := db.FindTopNMatches(ctx, database.FindTopNMatchesParams{
+		Entry: arg,
+		Limit: int64(quantityFlag),
+	})
 	if err != nil {
 		cmd.PrintErrf("%s\n", err)
 		return
@@ -32,7 +36,7 @@ func Query(cmd *cobra.Command, arg string, db database.RummageDbInterface) {
 	for _, item := range items {
 		entryLen := len(item.Entry)
 		scoreLen := len(fmt.Sprintf("%.4f", item.Score))
-		lastAccessedLen := len(fmt.Sprintf("%d", item.LastAccessed))
+		lastAccessedLen := len(fmt.Sprintf("%d", item.Lastaccessed))
 
 		if entryLen > entryMaxLen {
 			entryMaxLen = entryLen
@@ -49,7 +53,7 @@ func Query(cmd *cobra.Command, arg string, db database.RummageDbInterface) {
 	for _, item := range items {
 		s.WriteString(fmt.Sprintf(
 			"%-*d : %-*.*f : %-*s\n",
-			lastAccessedMaxLen, item.LastAccessed,
+			lastAccessedMaxLen, item.Lastaccessed,
 			scoreMaxLen, 4, item.Score,
 			entryMaxLen, item.Entry,
 		))

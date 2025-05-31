@@ -1,6 +1,8 @@
 package main
 
 import (
+	_ "embed"
+
 	"github.com/vague2k/rummage/cmd"
 	"github.com/vague2k/rummage/pkg/database"
 )

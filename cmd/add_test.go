@@ -9,14 +9,14 @@ import (
 
 func TestAdd(t *testing.T) {
 	t.Run("Properly adds item", func(t *testing.T) {
-		db := testutils.InMemDb(t)
+		db, _ := testutils.InMemDb(t)
 		cmd := NewRootCmd(db)
 		actual := testutils.Execute(cmd, "add", "github.com/gorilla/mux")
 
 		assert.Equal(t, "added 1 package\n", actual)
 	})
 	t.Run("Errors properly if attempted addition does not resemble go package", func(t *testing.T) {
-		db := testutils.InMemDb(t)
+		db, _ := testutils.InMemDb(t)
 		cmd := NewRootCmd(db)
 		actual := testutils.Execute(cmd, "add", "not-allowed1")
 
@@ -26,7 +26,7 @@ func TestAdd(t *testing.T) {
 
 func TestMultipleAdd(t *testing.T) {
 	t.Run("Properly adds items", func(t *testing.T) {
-		db := testutils.InMemDb(t)
+		db, _ := testutils.InMemDb(t)
 		cmd := NewRootCmd(db)
 		actual := testutils.Execute(cmd, "add", "github.com/gorilla/mux", "github.com/labstack/echo/v4")
 
@@ -34,7 +34,7 @@ func TestMultipleAdd(t *testing.T) {
 	})
 
 	t.Run("Errors properly if first attempted additions do not resemble go package", func(t *testing.T) {
-		db := testutils.InMemDb(t)
+		db, _ := testutils.InMemDb(t)
 		cmd := NewRootCmd(db)
 		actual := testutils.Execute(cmd, "add", "not-allowed1", "not-allowed2", "not-allowed3")
 
@@ -42,7 +42,7 @@ func TestMultipleAdd(t *testing.T) {
 	})
 
 	t.Run("Errors properly midway through adding", func(t *testing.T) {
-		db := testutils.InMemDb(t)
+		db, _ := testutils.InMemDb(t)
 		cmd := NewRootCmd(db)
 		actual := testutils.Execute(cmd, "add", "github.com/gorilla/mux", "github.com/user/echo", "not-allowed1")
 

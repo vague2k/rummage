@@ -9,7 +9,7 @@ import (
 
 func TestPopulate(t *testing.T) {
 	t.Run("Can populate db with 3 out of 3 packages", func(t *testing.T) {
-		db := testutils.InMemDb(t)
+		db, _ := testutils.InMemDb(t)
 		cmd := NewRootCmd(db)
 		actual := testutils.Execute(cmd, "populate", "--dir="+testutils.Mock3outof3pkgs(t))
 
@@ -17,7 +17,7 @@ func TestPopulate(t *testing.T) {
 	})
 
 	t.Run("Can populate db with 1 out of 3 packages", func(t *testing.T) {
-		db := testutils.InMemDb(t)
+		db, _ := testutils.InMemDb(t)
 		cmd := NewRootCmd(db)
 		actual := testutils.Execute(cmd, "populate", "--dir="+testutils.Mock1outof3pkgs(t))
 
@@ -25,7 +25,7 @@ func TestPopulate(t *testing.T) {
 	})
 
 	t.Run("Db does not populate if items already exist", func(t *testing.T) {
-		db := testutils.InMemDb(t)
+		db, _ := testutils.InMemDb(t)
 		cmd := NewRootCmd(db)
 		actual := testutils.Execute(cmd, "populate", "--dir="+t.TempDir())
 

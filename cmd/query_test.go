@@ -6,12 +6,13 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/vague2k/rummage/pkg/database"
 	"github.com/vague2k/rummage/testutils"
 )
 
 func TestQuery(t *testing.T) {
 	t.Run("Default amount of sorted matches", func(t *testing.T) {
-		db := testutils.InMemDb(t)
+		db, ctx := testutils.InMemDb(t)
 
 		for i := range 10 {
 			if i == 0 {
@@ -19,10 +20,16 @@ func TestQuery(t *testing.T) {
 			}
 			fakePkg := fmt.Sprintf("github.com/user%d/mux", i)
 
-			_, err := db.AddItem(fakePkg)
+			_, err := db.AddItem(ctx, database.AddItemParams{
+				Entry: fakePkg,
+			})
 			assert.NoError(t, err)
 
-			_, err = db.UpdateItem(fakePkg, float64(i), int64(i))
+			err = db.UpdateItem(ctx, database.UpdateItemParams{
+				Entry:        fakePkg,
+				Score:        float64(i),
+				Lastaccessed: int64(i),
+			})
 			assert.NoError(t, err)
 		}
 
@@ -39,7 +46,7 @@ func TestQuery(t *testing.T) {
 	})
 
 	t.Run("Errors if no match was found", func(t *testing.T) {
-		db := testutils.InMemDb(t)
+		db, _ := testutils.InMemDb(t)
 		cmd := NewRootCmd(db)
 		actual := testutils.Execute(cmd, "query", "mux")
 
