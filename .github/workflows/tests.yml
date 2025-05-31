@@ -11,14 +11,37 @@ jobs:
         os: [ubuntu-latest, macos-latest]
       fail-fast: false
     steps:
+
     - name: Checkout code
       uses: actions/checkout@v4
+
     - name: Set up Go
-      uses: actions/setup-go@v4
+      uses: actions/setup-go@v5
       with:
         go-version: ${{ matrix.go }}
+
     - name: Install dependencies
       run: go mod tidy
 
-    - name: Running tests
-      run: go test -v ./...
+    - name: Set up gotestfmt
+      run: go install github.com/gotesttools/gotestfmt/v2/cmd/gotestfmt@latest
+
+    - name: Run tests
+      run: |
+        set -euo pipefail
+        go test -json -v ./... 2>&1 | gotestfmt
+
+    # uncomment this if you ever need to log tests
+    # - name: Run tests
+    #   run: |
+    #     set -euo pipefail
+    #     go test -json -v ./... 2>&1 | tee /tmp/gotest.log | gotestfmt
+    #
+    # - name: Upload test log
+    #   uses: actions/upload-artifact@v4
+    #   if: always()
+    #   with:
+    #     name: test-log
+    #     path: /tmp/gotest.log
+    #     if-no-files-found: error
+
