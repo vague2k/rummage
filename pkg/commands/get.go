@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"context"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -37,8 +38,10 @@ func goGet(cobra *cobra.Command, pkg string, flags ...string) error {
 // "go get"s a package and adds it to the database, and update it's score
 //
 // it's assumed that if this function is called, the item does not yet exist in the database
-func getAddedItem(cmd *cobra.Command, db database.RummageDbInterface, pkg string, flags ...string) {
-	item, err := db.AddItem(pkg)
+func getAddedItem(cmd *cobra.Command, db *database.Queries, ctx context.Context, pkg string, flags ...string) {
+	item, err := db.AddItem(ctx, database.AddItemParams{
+		Entry: pkg,
+	})
 	if err != nil {
 		cmd.PrintErrf("%s\n", err)
 		return
@@ -50,7 +53,11 @@ func getAddedItem(cmd *cobra.Command, db database.RummageDbInterface, pkg string
 		return
 	}
 
-	_, err = db.UpdateItem(item.Entry, item.RecalculateScore(), time.Now().Unix())
+	err = db.UpdateItem(ctx, database.UpdateItemParams{
+		Entry:        item.Entry,
+		Score:        item.RecalculateScore(),
+		Lastaccessed: time.Now().Unix(),
+	})
 	if err != nil {
 		cmd.PrintErrf("%s\n", err)
 		return
@@ -60,8 +67,8 @@ func getAddedItem(cmd *cobra.Command, db database.RummageDbInterface, pkg string
 // "go get"s a package based on a db search and score, and at the end, update it's score
 //
 // it's assumed that if this function is called, the item exists in the database
-func getHighestScore(cmd *cobra.Command, db database.RummageDbInterface, pkgSubstr string, flags ...string) {
-	item, err := db.EntryWithHighestScore(pkgSubstr)
+func getHighestScore(cmd *cobra.Command, db *database.Queries, ctx context.Context, pkgSubstr string, flags ...string) {
+	item, err := db.EntryWithHighestScore(ctx, pkgSubstr)
 	if err != nil {
 		cmd.PrintErrf("%s\n", err)
 		return
@@ -73,7 +80,11 @@ func getHighestScore(cmd *cobra.Command, db database.RummageDbInterface, pkgSubs
 		return
 	}
 
-	_, err = db.UpdateItem(item.Entry, item.RecalculateScore(), time.Now().Unix())
+	err = db.UpdateItem(ctx, database.UpdateItemParams{
+		Entry:        item.Entry,
+		Score:        item.RecalculateScore(),
+		Lastaccessed: time.Now().Unix(),
+	})
 	if err != nil {
 		cmd.PrintErrf("%s\n", err)
 		return
@@ -114,7 +125,7 @@ func handleFlagsNoPkg(cmd *cobra.Command, flags ...string) {
 //
 // Any error go get can output (e.g. "repository does not exist" or "malformed path") are outputted as expected
 // and rummage does not touch these kinds of errors
-func Get(cmd *cobra.Command, args []string, db database.RummageDbInterface) {
+func Get(cmd *cobra.Command, args []string, db *database.Queries, ctx context.Context) {
 	flagMap, err := utils.GetBoolFlags(cmd, "update", "dependencies", "debug")
 	if err != nil {
 		cmd.PrintErr(err)
@@ -131,9 +142,9 @@ func Get(cmd *cobra.Command, args []string, db database.RummageDbInterface) {
 	for _, arg := range args {
 		arg = strings.ToLower(arg)
 		if strings.Count(arg, "/") >= 2 {
-			getAddedItem(cmd, db, arg, flags...)
+			getAddedItem(cmd, db, ctx, arg, flags...)
 			continue
 		}
-		getHighestScore(cmd, db, arg, flags...)
+		getHighestScore(cmd, db, ctx, arg, flags...)
 	}
 }

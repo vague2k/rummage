@@ -1,17 +1,19 @@
 package cmd
 
 import (
+	"context"
+
 	"github.com/spf13/cobra"
 	"github.com/vague2k/rummage/pkg/commands"
 	"github.com/vague2k/rummage/pkg/database"
 )
 
-func newGetCmd(db database.RummageDbInterface) *cobra.Command {
+func newGetCmd(db *database.Queries, ctx context.Context) *cobra.Command {
 	getCmd := &cobra.Command{
 		Use:   "get",
 		Short: "Get a go package from the database using a substring, or get a package how you normally would",
 		Run: func(cmd *cobra.Command, args []string) {
-			commands.Get(cmd, args, db)
+			commands.Get(cmd, args, db, ctx)
 		},
 	}
 

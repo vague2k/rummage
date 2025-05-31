@@ -1,9 +1,11 @@
 package utils
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
 )
 
@@ -48,4 +50,12 @@ func UserDataDir() string {
 	}
 
 	return dataDir
+}
+
+func ResemblesGoPackage(entry string) error {
+	regex := regexp.MustCompile(`^([a-zA-Z0-9-]+\.)+[a-zA-Z0-9-!]+(/[a-zA-Z0-9-_\.!]+)+(/[vV]\d+)?$`)
+	if !regex.MatchString(entry) {
+		return fmt.Errorf("the item attempted to be added to the database does not resemble a go package")
+	}
+	return nil
 }

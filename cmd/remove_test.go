@@ -4,13 +4,16 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/vague2k/rummage/pkg/database"
 	"github.com/vague2k/rummage/testutils"
 )
 
 func TestRemove(t *testing.T) {
 	t.Run("Properly removes item", func(t *testing.T) {
-		db := testutils.InMemDb(t)
-		_, err := db.AddItem("github.com/gorilla/mux")
+		db, ctx := testutils.InMemDb(t)
+		_, err := db.AddItem(ctx, database.AddItemParams{
+			Entry: "github.com/gorilla/mux",
+		})
 		assert.NoError(t, err)
 
 		cmd := NewRootCmd(db)
@@ -20,7 +23,7 @@ func TestRemove(t *testing.T) {
 	})
 
 	t.Run("Errors if item does not exist", func(t *testing.T) {
-		db := testutils.InMemDb(t)
+		db, _ := testutils.InMemDb(t)
 
 		cmd := NewRootCmd(db)
 		actual := testutils.Execute(cmd, "remove", "doesnotexist")
@@ -31,9 +34,14 @@ func TestRemove(t *testing.T) {
 
 func TestMultiRemove(t *testing.T) {
 	t.Run("Properly removes item", func(t *testing.T) {
-		db := testutils.InMemDb(t)
-		_, _, err := db.AddMultiItems("github.com/gorilla/mux", "github.com/user/mux")
-		assert.NoError(t, err)
+		db, ctx := testutils.InMemDb(t)
+		pkgsToDelete := []string{"github.com/gorilla/mux", "github.com/user/mux"}
+		for _, entry := range pkgsToDelete {
+			_, err := db.AddItem(ctx, database.AddItemParams{
+				Entry: entry,
+			})
+			assert.NoError(t, err)
+		}
 
 		cmd := NewRootCmd(db)
 		actual := testutils.Execute(cmd, "remove", "github.com/gorilla/mux", "github.com/user/mux")
@@ -42,9 +50,14 @@ func TestMultiRemove(t *testing.T) {
 	})
 
 	t.Run("Can delete items even if 1 item doesnt exist", func(t *testing.T) {
-		db := testutils.InMemDb(t)
-		_, _, err := db.AddMultiItems("github.com/gorilla/mux", "github.com/user/mux")
-		assert.NoError(t, err)
+		db, ctx := testutils.InMemDb(t)
+		pkgsToDelete := []string{"github.com/gorilla/mux", "github.com/user/mux", "doesnotexist"}
+		for _, entry := range pkgsToDelete {
+			_, err := db.AddItem(ctx, database.AddItemParams{
+				Entry: entry,
+			})
+			assert.NoError(t, err)
+		}
 
 		cmd := NewRootCmd(db)
 		actual := testutils.Execute(cmd, "remove", "github.com/gorilla/mux", "doesnotexist", "github.com/user/mux")
@@ -53,7 +66,7 @@ func TestMultiRemove(t *testing.T) {
 	})
 
 	t.Run("Errors if attempted items do not exist", func(t *testing.T) {
-		db := testutils.InMemDb(t)
+		db, _ := testutils.InMemDb(t)
 
 		cmd := NewRootCmd(db)
 		actual := testutils.Execute(cmd, "remove", "doesnotexist", "doesnotexist2")

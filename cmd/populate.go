@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"path/filepath"
 
 	"github.com/spf13/cobra"
@@ -9,12 +10,12 @@ import (
 	"github.com/vague2k/rummage/utils"
 )
 
-func newPopulateCmd(db database.RummageDbInterface) *cobra.Command {
+func newPopulateCmd(db *database.Queries, ctx context.Context) *cobra.Command {
 	populateCmd := &cobra.Command{
 		Use:   "populate",
 		Short: "Populate the database with third party packages already known by go",
 		Run: func(cmd *cobra.Command, args []string) {
-			commands.Populate(cmd, args, db)
+			commands.Populate(cmd, args, db, ctx)
 		},
 	}
 
