@@ -40,15 +40,17 @@ func goGet(cobra *cobra.Command, pkg string, flags ...string) error {
 //
 // it's assumed that if this function is called, the item does not yet exist in the database
 func getAddedItem(cmd *cobra.Command, db *database.Queries, ctx context.Context, pkg string, flags ...string) {
-	item, err := db.AddItem(ctx, database.AddItemParams{
-		Entry: pkg,
-	})
+	err := goGet(cmd, pkg, flags...)
 	if err != nil {
 		cmd.PrintErrf("%s\n", err)
 		return
 	}
 
-	err = goGet(cmd, pkg, flags...)
+	item, err := db.AddItem(ctx, database.AddItemParams{
+		Entry:        pkg,
+		Score:        1.0,
+		Lastaccessed: time.Now().Unix(),
+	})
 	if err != nil {
 		cmd.PrintErrf("%s\n", err)
 		return
