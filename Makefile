@@ -14,5 +14,5 @@ format:
 test:
 	@echo "Running tests...";
 	@set -euo pipefail
-	@go test -json -v ./... 2>&1 | tee /tmp/gotest.log | gotestfmt
+	@go test -json -v ./... 2>&1 | tee /tmp/gotest.log | gotestfmt -hide=empty-packages
 
