@@ -2,6 +2,7 @@ package commands
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -68,7 +69,11 @@ func getAddedItem(cmd *cobra.Command, db *database.Queries, ctx context.Context,
 //
 // it's assumed that if this function is called, the item exists in the database
 func getHighestScore(cmd *cobra.Command, db *database.Queries, ctx context.Context, pkgSubstr string, flags ...string) {
-	item, err := db.EntryWithHighestScore(ctx, pkgSubstr)
+	item, err := db.EntryWithHighestScore(ctx, "%"+pkgSubstr+"%")
+	if err != nil && err == sql.ErrNoRows {
+		cmd.PrintErrf("no match found with the given arguement %s\n", pkgSubstr)
+		return
+	}
 	if err != nil {
 		cmd.PrintErrf("%s\n", err)
 		return
