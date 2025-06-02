@@ -32,8 +32,11 @@ func Query(cmd *cobra.Command, arg string, db *database.Queries, ctx context.Con
 		cmd.PrintErrf("%s %s\n", "no match found with the given arguement", arg)
 		return
 	}
-	var s strings.Builder
 
+	cmd.Printf("%s\n", formatOutput(items))
+}
+
+func formatOutput(items []database.RummageItem) string {
 	// formatting
 	var entryMaxLen, lastAccessedMaxLen, scoreMaxLen int
 	for _, item := range items {
@@ -52,6 +55,7 @@ func Query(cmd *cobra.Command, arg string, db *database.Queries, ctx context.Con
 		}
 	}
 
+	var s strings.Builder
 	// Formatting output with proper padding
 	for _, item := range items {
 		s.WriteString(fmt.Sprintf(
@@ -61,6 +65,5 @@ func Query(cmd *cobra.Command, arg string, db *database.Queries, ctx context.Con
 			entryMaxLen, item.Entry,
 		))
 	}
-
-	cmd.Printf("%s\n", s.String())
+	return s.String()
 }
