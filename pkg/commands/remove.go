@@ -3,7 +3,6 @@ package commands
 import (
 	"bufio"
 	"context"
-	"database/sql"
 	"fmt"
 	"os"
 	"strings"
@@ -72,12 +71,12 @@ func Remove(cmd *cobra.Command, args []string, db *database.Queries, ctx context
 	}
 
 	for _, arg := range args {
-		err = db.DeleteItem(ctx, arg)
-		if err != nil && err == sql.ErrNoRows {
-			cmd.PrintErrf("can't delete item with entry %s it does not exist\n", arg)
-			continue
-		} else if err != nil {
+		affectedRows, err := db.DeleteItem(ctx, arg)
+		if err != nil {
 			cmd.PrintErrf("%s\n", arg)
+			continue
+		} else if affectedRows == 0 {
+			cmd.PrintErrf("can't delete item with entry %s it does not exist\n", arg)
 			continue
 		}
 		cmd.Printf("deleted %s from the database\n", arg)

@@ -9,68 +9,87 @@ import (
 )
 
 func TestRemove(t *testing.T) {
-	t.Run("Properly removes item", func(t *testing.T) {
-		db, ctx := testutils.InMemDb(t)
-		_, err := db.AddItem(ctx, database.AddItemParams{
-			Entry: "github.com/gorilla/mux",
+	type testCase struct {
+		name     string
+		setup    []string
+		args     []string
+		expected string
+	}
+
+	tests := []testCase{
+		{
+			name:     "Properly removes item",
+			setup:    []string{"github.com/gorilla/mux"},
+			args:     []string{"remove", "github.com/gorilla/mux"},
+			expected: "deleted github.com/gorilla/mux from the database\n",
+		},
+		{
+			name:     "Errors if item does not exist",
+			setup:    nil,
+			args:     []string{"remove", "doesnotexist"},
+			expected: "can't delete item with entry doesnotexist it does not exist\n",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			db, ctx := testutils.InMemDb(t)
+			for _, entry := range tc.setup {
+				_, err := db.AddItem(ctx, database.AddItemParams{Entry: entry})
+				assert.NoError(t, err)
+			}
+
+			cmd := NewRootCmd(db)
+			actual := testutils.Execute(cmd, tc.args...)
+			assert.Equal(t, tc.expected, actual)
 		})
-		assert.NoError(t, err)
-
-		cmd := NewRootCmd(db)
-		actual := testutils.Execute(cmd, "remove", "github.com/gorilla/mux")
-
-		assert.Equal(t, "deleted github.com/gorilla/mux from the database\n", actual)
-	})
-
-	t.Run("Errors if item does not exist", func(t *testing.T) {
-		db, _ := testutils.InMemDb(t)
-
-		cmd := NewRootCmd(db)
-		actual := testutils.Execute(cmd, "remove", "doesnotexist")
-
-		assert.Equal(t, "can't delete item with entry doesnotexist it does not exist\n", actual)
-	})
+	}
 }
 
 func TestMultiRemove(t *testing.T) {
-	t.Run("Properly removes item", func(t *testing.T) {
-		db, ctx := testutils.InMemDb(t)
-		pkgsToDelete := []string{"github.com/gorilla/mux", "github.com/user/mux"}
-		for _, entry := range pkgsToDelete {
-			_, err := db.AddItem(ctx, database.AddItemParams{
-				Entry: entry,
-			})
-			assert.NoError(t, err)
-		}
+	type testCase struct {
+		name     string
+		setup    []string
+		args     []string
+		expected string
+	}
 
-		cmd := NewRootCmd(db)
-		actual := testutils.Execute(cmd, "remove", "github.com/gorilla/mux", "github.com/user/mux")
+	tests := []testCase{
+		{
+			name:  "Properly removes item",
+			setup: []string{"github.com/gorilla/mux", "github.com/user/mux"},
+			args:  []string{"remove", "github.com/gorilla/mux", "github.com/user/mux"},
+			expected: "deleted github.com/gorilla/mux from the database\n" +
+				"deleted github.com/user/mux from the database\n",
+		},
+		{
+			name:  "Can delete existing items even if 1 item doesn't exist",
+			setup: []string{"github.com/gorilla/mux", "github.com/user/mux"},
+			args:  []string{"remove", "github.com/gorilla/mux", "doesnotexist", "github.com/user/mux"},
+			expected: "deleted github.com/gorilla/mux from the database\n" +
+				"can't delete item with entry doesnotexist it does not exist\n" +
+				"deleted github.com/user/mux from the database\n",
+		},
+		{
+			name:  "Errors if all items do not exist",
+			setup: nil,
+			args:  []string{"remove", "doesnotexist", "doesnotexist2"},
+			expected: "can't delete item with entry doesnotexist it does not exist\n" +
+				"can't delete item with entry doesnotexist2 it does not exist\n",
+		},
+	}
 
-		assert.Equal(t, "deleted github.com/gorilla/mux from the database\ndeleted github.com/user/mux from the database\n", actual)
-	})
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			db, ctx := testutils.InMemDb(t)
+			for _, entry := range tc.setup {
+				_, err := db.AddItem(ctx, database.AddItemParams{Entry: entry})
+				assert.NoError(t, err)
+			}
 
-	t.Run("Can delete items even if 1 item doesnt exist", func(t *testing.T) {
-		db, ctx := testutils.InMemDb(t)
-		pkgsToDelete := []string{"github.com/gorilla/mux", "github.com/user/mux", "doesnotexist"}
-		for _, entry := range pkgsToDelete {
-			_, err := db.AddItem(ctx, database.AddItemParams{
-				Entry: entry,
-			})
-			assert.NoError(t, err)
-		}
-
-		cmd := NewRootCmd(db)
-		actual := testutils.Execute(cmd, "remove", "github.com/gorilla/mux", "doesnotexist", "github.com/user/mux")
-
-		assert.Equal(t, "deleted github.com/gorilla/mux from the database\ncan't delete item with entry doesnotexist it does not exist\ndeleted github.com/user/mux from the database\n", actual)
-	})
-
-	t.Run("Errors if attempted items do not exist", func(t *testing.T) {
-		db, _ := testutils.InMemDb(t)
-
-		cmd := NewRootCmd(db)
-		actual := testutils.Execute(cmd, "remove", "doesnotexist", "doesnotexist2")
-
-		assert.Equal(t, "can't delete item with entry doesnotexist it does not exist\ncan't delete item with entry doesnotexist2 it does not exist\n", actual)
-	})
+			cmd := NewRootCmd(db)
+			actual := testutils.Execute(cmd, tc.args...)
+			assert.Equal(t, tc.expected, actual)
+		})
+	}
 }

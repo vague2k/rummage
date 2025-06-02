@@ -42,16 +42,19 @@ func (q *Queries) DeleteAllItem(ctx context.Context) error {
 	return err
 }
 
-const deleteItem = `-- name: DeleteItem :exec
+const deleteItem = `-- name: DeleteItem :execrows
 ;
 
 DELETE FROM rummage_items
 WHERE entry = ?
 `
 
-func (q *Queries) DeleteItem(ctx context.Context, entry string) error {
-	_, err := q.db.ExecContext(ctx, deleteItem, entry)
-	return err
+func (q *Queries) DeleteItem(ctx context.Context, entry string) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteItem, entry)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const entryWithHighestScore = `-- name: EntryWithHighestScore :one

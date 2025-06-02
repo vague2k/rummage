@@ -30,7 +30,7 @@ WHERE entry LIKE ?
 ORDER BY score
 DESC LIMIT ? ;
 
--- name: DeleteItem :exec
+-- name: DeleteItem :execrows
 DELETE FROM rummage_items
 WHERE entry = ? ;
 
