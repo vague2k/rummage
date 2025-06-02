@@ -21,7 +21,9 @@ func TestQuery(t *testing.T) {
 			fakePkg := fmt.Sprintf("github.com/user%d/mux", i)
 
 			_, err := db.AddItem(ctx, database.AddItemParams{
-				Entry: fakePkg,
+				Entry:        fakePkg,
+				Score:        float64(i),
+				Lastaccessed: int64(i),
 			})
 			assert.NoError(t, err)
 

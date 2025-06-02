@@ -22,11 +22,14 @@ func Query(cmd *cobra.Command, arg string, db *database.Queries, ctx context.Con
 
 	arg = strings.ToLower(arg)
 	items, err := db.FindTopNMatches(ctx, database.FindTopNMatchesParams{
-		Entry: arg,
+		Entry: "%" + arg + "%",
 		Limit: int64(quantityFlag),
 	})
 	if err != nil {
 		cmd.PrintErrf("%s\n", err)
+		return
+	} else if len(items) == 0 {
+		cmd.PrintErrf("%s %s\n", "no match found with the given arguement", arg)
 		return
 	}
 	var s strings.Builder
