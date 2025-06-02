@@ -5,46 +5,20 @@ import (
 	"database/sql"
 	_ "embed"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
-	"time"
+	"runtime"
 
 	_ "github.com/mattn/go-sqlite3"
-	"github.com/vague2k/rummage/utils"
 )
 
 //go:embed schema.sql
 var schema string
 
-const (
-	_HOUR = 3600
-	_DAY  = _HOUR * 24
-	_WEEK = _DAY * 7
-)
-
-// Recalculates an item's score based on the last time it was last accessed.
-func (i *RummageItem) RecalculateScore() float64 {
-	var score float64
-
-	duration := time.Now().Unix() - i.Lastaccessed
-
-	// the older the time, the lower the score
-	if duration < _HOUR {
-		score = i.Score + 4.0
-	} else if duration < _DAY {
-		score = i.Score + 2.0
-	} else if duration < _WEEK {
-		score = i.Score * 0.5
-	} else {
-		score = i.Score * 0.25
-	}
-
-	return score
-}
-
 func Init(path string) (*Queries, error) {
 	if path == "" {
-		dataDir := utils.UserDataDir()
+		dataDir := userDataDir()
 		path = dataDir
 	}
 
@@ -70,4 +44,31 @@ func Init(path string) (*Queries, error) {
 	}
 
 	return New(db), nil
+}
+
+// Gets the user's $XDG_DATA_HOME dir.
+//
+// Fallsback to the default data dir if the env var does not exist.
+func userDataDir() string {
+	var dataDir string
+
+	if dataDir = os.Getenv("XDG_DATA_HOME"); dataDir != "" {
+		return dataDir
+	}
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		log.Fatal("Could not get the home directory")
+	}
+
+	switch runtime.GOOS {
+	case "windows":
+		if dataDir = os.Getenv("LOCALAPPDATA"); dataDir != "" {
+			dataDir = filepath.Join(home, "AppData", "Local")
+		}
+	default:
+		dataDir = filepath.Join(home, ".local", "share")
+	}
+
+	return dataDir
 }

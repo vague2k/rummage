@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	"github.com/vague2k/rummage/pkg/commands/utils"
 	"github.com/vague2k/rummage/pkg/database"
+	"github.com/vague2k/rummage/utils"
 )
 
 // attempts to call "go get" against an arg and also takes into account any flags "go get" may accept
@@ -58,7 +58,7 @@ func getAddedItem(cmd *cobra.Command, db *database.Queries, ctx context.Context,
 
 	err = db.UpdateItem(ctx, database.UpdateItemParams{
 		Entry:        item.Entry,
-		Score:        item.RecalculateScore(),
+		Score:        utils.RecalculateScore(&item),
 		Lastaccessed: time.Now().Unix(),
 	})
 	if err != nil {
@@ -89,7 +89,7 @@ func getHighestScore(cmd *cobra.Command, db *database.Queries, ctx context.Conte
 
 	err = db.UpdateItem(ctx, database.UpdateItemParams{
 		Entry:        item.Entry,
-		Score:        item.RecalculateScore(),
+		Score:        utils.RecalculateScore(&item),
 		Lastaccessed: time.Now().Unix(),
 	})
 	if err != nil {
@@ -133,12 +133,16 @@ func handleFlagsNoPkg(cmd *cobra.Command, flags ...string) {
 // Any error go get can output (e.g. "repository does not exist" or "malformed path") are outputted as expected
 // and rummage does not touch these kinds of errors
 func Get(cmd *cobra.Command, args []string, db *database.Queries, ctx context.Context) {
-	flagMap, err := utils.GetBoolFlags(cmd, "update", "dependencies", "debug")
-	if err != nil {
-		cmd.PrintErr(err)
-		return
+	names := []string{"update", "dependencies", "debug"}
+	flagMap := make(map[string]bool)
+	for _, name := range names {
+		v, err := cmd.Flags().GetBool(name)
+		if err != nil {
+			cmd.PrintErrf("%s\n", err)
+			return
+		}
+		flagMap[name] = v
 	}
-
 	flags := getFlags(flagMap)
 
 	if len(args) == 0 && len(flags) > 0 {
