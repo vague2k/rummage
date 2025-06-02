@@ -17,8 +17,6 @@ const (
 	WEEK   = DAY * 7
 )
 
-var offset int64 // a small buffer of time for a more realistic-ish test
-
 func TestRecalculateScore(t *testing.T) {
 	tests := []struct {
 		name          string
