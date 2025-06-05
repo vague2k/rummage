@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"context"
 	"fmt"
 	"io/fs"
 	"path/filepath"
@@ -53,7 +54,7 @@ func extractPackages(dir string) ([]string, error) {
 
 // The "populate" command populates the database with third party packages already known by go.
 // By the default, the dir "populate" walks through will be "$GOPATH/pkg/mod/github.com"
-func Populate(cmd *cobra.Command, args []string, db database.RummageDbInterface) {
+func Populate(cmd *cobra.Command, args []string, db *database.Queries, ctx context.Context) {
 	flagDir := cmd.Flag("dir").Value.String()
 
 	pkgs, err := extractPackages(flagDir)
@@ -61,9 +62,15 @@ func Populate(cmd *cobra.Command, args []string, db database.RummageDbInterface)
 		cmd.PrintErr(err)
 	}
 
-	_, amtAdded, err := db.AddMultiItems(pkgs...)
-	if err != nil {
-		cmd.PrintErr(err)
+	amtAdded := 0
+	for _, entry := range pkgs {
+		_, err := db.AddItem(ctx, database.AddItemParams{
+			Entry: entry,
+		})
+		if err != nil {
+			cmd.PrintErr(err)
+		}
+		amtAdded++
 	}
 
 	if amtAdded == 0 {

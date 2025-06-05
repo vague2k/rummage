@@ -2,6 +2,7 @@ package commands
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -18,6 +19,7 @@ func prompt(label string, def bool) bool {
 
 	r := bufio.NewReader(os.Stdin)
 	var s string
+	var err error
 
 	var tries int
 	for {
@@ -26,7 +28,10 @@ func prompt(label string, def bool) bool {
 			return false
 		}
 		fmt.Fprintf(os.Stderr, "%s (%s) ", label, choices)
-		s, _ = r.ReadString('\n')
+		s, err = r.ReadString('\n')
+		if err != nil {
+			panic(err)
+		}
 		s = strings.TrimSpace(s)
 		if s == "" {
 			tries++
@@ -44,7 +49,7 @@ func prompt(label string, def bool) bool {
 	}
 }
 
-func Remove(cmd *cobra.Command, args []string, db database.RummageDbInterface) {
+func Remove(cmd *cobra.Command, args []string, db *database.Queries, ctx context.Context) {
 	flagDeleteAll, err := cmd.Flags().GetBool("delete-all")
 	if err != nil {
 		cmd.PrintErrf("%s\n", err)
@@ -56,7 +61,7 @@ func Remove(cmd *cobra.Command, args []string, db database.RummageDbInterface) {
 		if !confirmed {
 			return
 		}
-		err := db.DeleteAllItems()
+		err := db.DeleteAllItem(ctx)
 		if err != nil {
 			cmd.PrintErrf("%s\n", err)
 			return
@@ -66,11 +71,14 @@ func Remove(cmd *cobra.Command, args []string, db database.RummageDbInterface) {
 	}
 
 	for _, arg := range args {
-		item, err := db.DeleteItem(arg)
+		affectedRows, err := db.DeleteItem(ctx, arg)
 		if err != nil {
-			cmd.PrintErrf("%s\n", err)
+			cmd.PrintErrf("%s\n", arg)
+			continue
+		} else if affectedRows == 0 {
+			cmd.PrintErrf("can't delete item with entry %s it does not exist\n", arg)
 			continue
 		}
-		cmd.Printf("deleted %s from the database\n", item.Entry)
+		cmd.Printf("deleted %s from the database\n", arg)
 	}
 }

@@ -2,6 +2,7 @@ package testutils
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -16,14 +17,13 @@ import (
 // Spin up an in memory database (since we're using sqlite3) for quick testing
 //
 // This function already includes a cleanup function where when the test completes, the database is closed
-func InMemDb(t *testing.T) *database.RummageDb {
+func InMemDb(t *testing.T) (*database.Queries, context.Context) {
 	db, err := database.Init(":memory:")
 	assert.NoError(t, err)
 	t.Cleanup(func() {
-		db.Close()
 		db = nil
 	})
-	return db
+	return db, context.Background()
 }
 
 // Execute a cobra command with custom args for testing using *bytes.Buffer under the hood.
