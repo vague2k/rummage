@@ -9,23 +9,21 @@ import (
 )
 
 func TestRemove(t *testing.T) {
-	type testCase struct {
+	tests := []struct {
 		name     string
-		setup    []string
+		addPkgs  []string
 		args     []string
 		expected string
-	}
-
-	tests := []testCase{
+	}{
 		{
 			name:     "Properly removes item",
-			setup:    []string{"github.com/gorilla/mux"},
+			addPkgs:  []string{"github.com/gorilla/mux"},
 			args:     []string{"remove", "github.com/gorilla/mux"},
 			expected: "deleted github.com/gorilla/mux from the database\n",
 		},
 		{
 			name:     "Errors if item does not exist",
-			setup:    nil,
+			addPkgs:  nil,
 			args:     []string{"remove", "doesnotexist"},
 			expected: "can't delete item with entry doesnotexist it does not exist\n",
 		},
@@ -34,7 +32,7 @@ func TestRemove(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			db, ctx := testutils.InMemDb(t)
-			for _, entry := range tc.setup {
+			for _, entry := range tc.addPkgs {
 				_, err := db.AddItem(ctx, database.AddItemParams{Entry: entry})
 				assert.NoError(t, err)
 			}
@@ -47,49 +45,47 @@ func TestRemove(t *testing.T) {
 }
 
 func TestMultiRemove(t *testing.T) {
-	type testCase struct {
+	tests := []struct {
 		name     string
-		setup    []string
+		addPkgs  []string
 		args     []string
 		expected string
-	}
-
-	tests := []testCase{
+	}{
 		{
-			name:  "Properly removes item",
-			setup: []string{"github.com/gorilla/mux", "github.com/user/mux"},
-			args:  []string{"remove", "github.com/gorilla/mux", "github.com/user/mux"},
+			name:    "Properly removes item",
+			addPkgs: []string{"github.com/gorilla/mux", "github.com/user/mux"},
+			args:    []string{"remove", "github.com/gorilla/mux", "github.com/user/mux"},
 			expected: "deleted github.com/gorilla/mux from the database\n" +
 				"deleted github.com/user/mux from the database\n",
 		},
 		{
-			name:  "Can delete existing items even if 1 item doesn't exist",
-			setup: []string{"github.com/gorilla/mux", "github.com/user/mux"},
-			args:  []string{"remove", "github.com/gorilla/mux", "doesnotexist", "github.com/user/mux"},
+			name:    "Can delete existing items even if 1 item doesn't exist",
+			addPkgs: []string{"github.com/gorilla/mux", "github.com/user/mux"},
+			args:    []string{"remove", "github.com/gorilla/mux", "doesnotexist", "github.com/user/mux"},
 			expected: "deleted github.com/gorilla/mux from the database\n" +
 				"can't delete item with entry doesnotexist it does not exist\n" +
 				"deleted github.com/user/mux from the database\n",
 		},
 		{
-			name:  "Errors if all items do not exist",
-			setup: nil,
-			args:  []string{"remove", "doesnotexist", "doesnotexist2"},
+			name:    "Errors if all items do not exist",
+			addPkgs: nil,
+			args:    []string{"remove", "doesnotexist", "doesnotexist2"},
 			expected: "can't delete item with entry doesnotexist it does not exist\n" +
 				"can't delete item with entry doesnotexist2 it does not exist\n",
 		},
 	}
 
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
 			db, ctx := testutils.InMemDb(t)
-			for _, entry := range tc.setup {
+			for _, entry := range tt.addPkgs {
 				_, err := db.AddItem(ctx, database.AddItemParams{Entry: entry})
 				assert.NoError(t, err)
 			}
 
 			cmd := NewRootCmd(db)
-			actual := testutils.Execute(cmd, tc.args...)
-			assert.Equal(t, tc.expected, actual)
+			actual := testutils.Execute(cmd, tt.args...)
+			assert.Equal(t, tt.expected, actual)
 		})
 	}
 }
