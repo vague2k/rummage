@@ -17,130 +17,102 @@ import (
 // See testutils.First8()
 
 func TestGetHighestScore(t *testing.T) {
+	tests := []struct {
+		name string
+		args []string
+	}{
+		{
+			name: "Get item with highest score",
+			args: []string{"get", "bubble"},
+		},
+		{
+			name: "Get item with highest score with -u",
+			args: []string{"get", "-u", "bubble"},
+		},
+		{
+			name: "Get item with highest score with -t",
+			args: []string{"get", "-t", "bubble"},
+		},
+		{
+			name: "Get item with highest score with -x",
+			args: []string{"get", "-x", "bubble"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			testutils.GoModTidy(t)
+			t.Cleanup(func() {
+				testutils.GoModTidy(t)
+			})
+
+			pkgs := []string{"github.com/charmbracelet/bubbletea", "github.com/charmbracelet/bubbles"}
+			db, ctx := testutils.InMemDb(t)
+
+			for _, entry := range pkgs {
+				_, err := db.AddItem(ctx, database.AddItemParams{
+					Entry: entry,
+				})
+				assert.NoError(t, err)
+				db.UpdateItem(ctx, database.UpdateItemParams{
+					Entry: "github.com/charmbracelet/bubbletea",
+					Score: 5.0,
+				})
+				assert.NoError(t, err)
+			}
+
+			cmd := NewRootCmd(db)
+			actual := testutils.Execute(cmd, tt.args...)
+
+			assert.Contains(t, actual, "go: added github.com/charmbracelet/bubbletea")
+			assert.NotContains(t, actual, "go: added github.com/charmbracelet/bubbles")
+			testutils.GoModTidy(t)
+		})
+	}
+}
+
+func TestGetHighestScoreErrors(t *testing.T) {
 	testutils.GoModTidy(t)
 	t.Cleanup(func() {
 		testutils.GoModTidy(t)
 	})
 
-	t.Run("Can get item from db", func(t *testing.T) {
-		db, ctx := testutils.InMemDb(t)
-		_, err := db.AddItem(ctx, database.AddItemParams{
-			Entry: "github.com/gorilla/mux",
+	tests := []struct {
+		name     string
+		args     []string
+		expected string
+	}{
+		{
+			name:     "Errors if item does not exist",
+			args:     []string{"get", "mux"},
+			expected: "no match found with the given arguement mux\n",
+		},
+		{
+			name:     "Errors if item does not exist with -u",
+			args:     []string{"get", "-u", "mux"},
+			expected: "no match found with the given arguement mux\n",
+		},
+		{
+			name:     "Errors if item does not exist with -t",
+			args:     []string{"get", "-t", "mux"},
+			expected: "no match found with the given arguement mux\n",
+		},
+		{
+			name:     "Errors if item does not exist with -x",
+			args:     []string{"get", "-x", "mux"},
+			expected: "no match found with the given arguement mux\n",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			db, _ := testutils.InMemDb(t)
+
+			cmd := NewRootCmd(db)
+			actual := testutils.Execute(cmd, tt.args...)
+
+			assert.Equal(t, "no match found with the given arguement mux\n", actual)
+			testutils.GoModTidy(t)
 		})
-		assert.NoError(t, err)
-
-		cmd := NewRootCmd(db)
-		actual := testutils.Execute(cmd, "get", "mux")
-
-		assert.Contains(t, actual, "go: added github.com/gorilla/mux")
-		testutils.GoModTidy(t)
-	})
-
-	t.Run("Can get item from db with higher score", func(t *testing.T) {
-		db, ctx := testutils.InMemDb(t)
-		pkgs := []string{"github.com/charmbracelet/bubbletea", "github.com/charmbracelet/bubbles"}
-		for _, entry := range pkgs {
-			_, err := db.AddItem(ctx, database.AddItemParams{
-				Entry: entry,
-			})
-			assert.NoError(t, err)
-		}
-		err := db.UpdateItem(ctx, database.UpdateItemParams{
-			Entry:        "github.com/charmbracelet/bubbletea",
-			Score:        5.0,
-			Lastaccessed: time.Now().Unix(),
-		})
-		assert.NoError(t, err)
-
-		cmd := NewRootCmd(db)
-		actual := testutils.Execute(cmd, "get", "bubble")
-
-		assert.Contains(t, actual, "go: added github.com/charmbracelet/bubbletea")
-		assert.NotContains(t, actual, "go: added github.com/charmbracelet/bubbles")
-		testutils.GoModTidy(t)
-	})
-
-	t.Run("Can get item from db with -u flag", func(t *testing.T) {
-		db, ctx := testutils.InMemDb(t)
-		_, err := db.AddItem(ctx, database.AddItemParams{
-			Entry: "github.com/gorilla/mux",
-		})
-		assert.NoError(t, err)
-
-		cmd := NewRootCmd(db)
-		actual := testutils.Execute(cmd, "get", "-u", "mux")
-
-		assert.Contains(t, actual, "go: added github.com/gorilla/mux")
-		testutils.GoModTidy(t)
-	})
-
-	t.Run("Can get item from db with -t flag", func(t *testing.T) {
-		db, ctx := testutils.InMemDb(t)
-		_, err := db.AddItem(ctx, database.AddItemParams{
-			Entry: "github.com/gorilla/mux",
-		})
-		assert.NoError(t, err)
-
-		cmd := NewRootCmd(db)
-		actual := testutils.Execute(cmd, "get", "-t", "mux")
-
-		assert.Contains(t, actual, "go: added github.com/gorilla/mux")
-		testutils.GoModTidy(t)
-	})
-
-	t.Run("Can get item from db with -x flag", func(t *testing.T) {
-		db, ctx := testutils.InMemDb(t)
-		_, err := db.AddItem(ctx, database.AddItemParams{
-			Entry: "github.com/gorilla/mux",
-		})
-		assert.NoError(t, err)
-
-		cmd := NewRootCmd(db)
-		actual := testutils.Execute(cmd, "get", "-x", "mux")
-
-		assert.Contains(t, actual, "go: added github.com/gorilla/mux")
-		testutils.GoModTidy(t)
-	})
-
-	t.Run("Errors if item does not exist", func(t *testing.T) {
-		db, _ := testutils.InMemDb(t)
-
-		cmd := NewRootCmd(db)
-		actual := testutils.Execute(cmd, "get", "mux")
-
-		assert.Equal(t, "no match found with the given arguement mux\n", actual)
-		testutils.GoModTidy(t)
-	})
-
-	t.Run("Errors if item does not exist with -u flag", func(t *testing.T) {
-		db, _ := testutils.InMemDb(t)
-
-		cmd := NewRootCmd(db)
-		actual := testutils.Execute(cmd, "get", "-u", "mux")
-
-		assert.Equal(t, "no match found with the given arguement mux\n", actual)
-		testutils.GoModTidy(t)
-	})
-
-	t.Run("Errors if item does not exist with -t flag", func(t *testing.T) {
-		db, _ := testutils.InMemDb(t)
-
-		cmd := NewRootCmd(db)
-		actual := testutils.Execute(cmd, "get", "-t", "mux")
-
-		assert.Equal(t, "no match found with the given arguement mux\n", actual)
-		testutils.GoModTidy(t)
-	})
-
-	t.Run("Errors if item does not exist with -x flag", func(t *testing.T) {
-		db, _ := testutils.InMemDb(t)
-
-		cmd := NewRootCmd(db)
-		actual := testutils.Execute(cmd, "get", "-x", "mux")
-
-		assert.Equal(t, "no match found with the given arguement mux\n", actual)
-		testutils.GoModTidy(t)
-	})
+	}
 }
 
 func TestGetMultiHighestScore(t *testing.T) {
@@ -149,153 +121,97 @@ func TestGetMultiHighestScore(t *testing.T) {
 		testutils.GoModTidy(t)
 	})
 
-	t.Run("Can get multiple item from db", func(t *testing.T) {
-		db, ctx := testutils.InMemDb(t)
-		pkgs := []string{"github.com/gorilla/mux", "github.com/gofiber/fiber/v2"}
-		for _, entry := range pkgs {
-			_, err := db.AddItem(ctx, database.AddItemParams{
-				Entry: entry,
+	tests := []struct {
+		name string
+		args []string
+	}{
+		{
+			name: "Get multiple items with highest score",
+			args: []string{"get", "bubble", "mux"},
+		},
+		{
+			name: "Get multiple items with highest score with -u",
+			args: []string{"get", "-u", "bubble", "mux"},
+		},
+		{
+			name: "Get multiple items with highest score with -t",
+			args: []string{"get", "-t", "bubble", "mux"},
+		},
+		{
+			name: "Get multiple items with highest score with -x",
+			args: []string{"get", "-x", "bubble", "mux"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			testutils.GoModTidy(t)
+			t.Cleanup(func() {
+				testutils.GoModTidy(t)
 			})
-			assert.NoError(t, err)
-		}
+			db, ctx := testutils.InMemDb(t)
+			pkgs := []string{"github.com/charmbracelet/bubbletea", "github.com/charmbracelet/bubbles", "github.com/gorilla/mux"}
+			for _, entry := range pkgs {
+				_, err := db.AddItem(ctx, database.AddItemParams{
+					Entry: entry,
+				})
+				assert.NoError(t, err)
+				err = db.UpdateItem(ctx, database.UpdateItemParams{
+					Entry: "github.com/charmbracelet/bubbletea",
+					Score: 5.0,
+				})
+				assert.NoError(t, err)
+			}
 
-		cmd := NewRootCmd(db)
-		actual := testutils.Execute(cmd, "get", "mux", "fiber")
+			cmd := NewRootCmd(db)
+			actual := testutils.Execute(cmd, tt.args...)
 
-		assert.Contains(t, actual, "go: added github.com/gorilla/mux")
-		assert.Contains(t, actual, "go: added github.com/gofiber/fiber/v2")
-		testutils.GoModTidy(t)
-	})
-
-	t.Run("Can get multiple item from db with higher score", func(t *testing.T) {
-		db, ctx := testutils.InMemDb(t)
-		bubblePkgs := []string{"github.com/charmbracelet/bubbletea", "github.com/charmbracelet/bubbles"}
-		for _, entry := range bubblePkgs {
-			_, err := db.AddItem(ctx, database.AddItemParams{
-				Entry: entry,
-			})
-			assert.NoError(t, err)
-		}
-		err := db.UpdateItem(ctx, database.UpdateItemParams{
-			Entry:        "github.com/charmbracelet/bubbletea",
-			Score:        5.0,
-			Lastaccessed: time.Now().Unix(),
+			assert.Contains(t, actual, "go: added github.com/charmbracelet/bubbletea")
+			assert.Contains(t, actual, "go: added github.com/gorilla/mux")
+			assert.NotContains(t, actual, "go: added github.com/charmbracelet/bubbles")
+			testutils.GoModTidy(t)
 		})
-		assert.NoError(t, err)
+	}
+}
 
-		goPkgs := []string{"golang.org/x/sync", "golang.org/x/net"}
-		for _, entry := range goPkgs {
-			_, err := db.AddItem(ctx, database.AddItemParams{
-				Entry: entry,
-			})
-			assert.NoError(t, err)
-		}
-		err = db.UpdateItem(ctx, database.UpdateItemParams{
-			Entry:        "golang.org/x/sync",
-			Score:        5.0,
-			Lastaccessed: time.Now().Unix(),
+func TestGetMultiHighestScoreErrors(t *testing.T) {
+	testutils.GoModTidy(t)
+	t.Cleanup(func() {
+		testutils.GoModTidy(t)
+	})
+
+	tests := []struct {
+		name string
+		args []string
+	}{
+		{
+			name: "Errors if item does not exist",
+			args: []string{"get", "bubbles", "mux"},
+		},
+		{
+			name: "Errors if item does not exist with -u",
+			args: []string{"get", "-u", "bubbles", "mux"},
+		},
+		{
+			name: "Errors if item does not exist with -t",
+			args: []string{"get", "-t", "bubbles", "mux"},
+		},
+		{
+			name: "Errors if item does not exist with -x",
+			args: []string{"get", "-x", "bubbles", "mux"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			db, _ := testutils.InMemDb(t)
+
+			cmd := NewRootCmd(db)
+			actual := testutils.Execute(cmd, tt.args...)
+
+			assert.Equal(t, "no match found with the given arguement bubbles\nno match found with the given arguement mux\n", actual)
+			testutils.GoModTidy(t)
 		})
-		assert.NoError(t, err)
-
-		cmd := NewRootCmd(db)
-		actual := testutils.Execute(cmd, "get", "bubble", "golang")
-
-		assert.Contains(t, actual, "go: added github.com/charmbracelet/bubbletea")
-		assert.Contains(t, actual, "go: added golang.org/x/sync")
-		assert.NotContains(t, actual, "go: added github.com/charmbracelet/bubbles")
-		assert.NotContains(t, actual, "go: added golang.org/x/net")
-		testutils.GoModTidy(t)
-	})
-
-	t.Run("Can get multiple item from db with -u flag", func(t *testing.T) {
-		db, ctx := testutils.InMemDb(t)
-		bubblePkgs := []string{"github.com/gorilla/mux", "github.com/gofiber/fiber/v2"}
-		for _, entry := range bubblePkgs {
-			_, err := db.AddItem(ctx, database.AddItemParams{
-				Entry: entry,
-			})
-			assert.NoError(t, err)
-		}
-
-		cmd := NewRootCmd(db)
-		actual := testutils.Execute(cmd, "get", "-u", "mux", "fiber")
-
-		assert.Contains(t, actual, "go: added github.com/gorilla/mux")
-		assert.Contains(t, actual, "go: added github.com/gofiber/fiber/v2")
-		testutils.GoModTidy(t)
-	})
-
-	t.Run("Can get multiple item from db with -t flag", func(t *testing.T) {
-		db, ctx := testutils.InMemDb(t)
-		bubblePkgs := []string{"github.com/gorilla/mux", "github.com/gofiber/fiber/v2"}
-		for _, entry := range bubblePkgs {
-			_, err := db.AddItem(ctx, database.AddItemParams{
-				Entry: entry,
-			})
-			assert.NoError(t, err)
-		}
-
-		cmd := NewRootCmd(db)
-		actual := testutils.Execute(cmd, "get", "-t", "mux", "fiber")
-
-		assert.Contains(t, actual, "go: added github.com/gorilla/mux")
-		assert.Contains(t, actual, "go: added github.com/gofiber/fiber/v2")
-		testutils.GoModTidy(t)
-	})
-
-	t.Run("Can get multiple item from db with -x flag", func(t *testing.T) {
-		db, ctx := testutils.InMemDb(t)
-		bubblePkgs := []string{"github.com/gorilla/mux", "github.com/gofiber/fiber/v2"}
-		for _, entry := range bubblePkgs {
-			_, err := db.AddItem(ctx, database.AddItemParams{
-				Entry: entry,
-			})
-			assert.NoError(t, err)
-		}
-
-		cmd := NewRootCmd(db)
-		actual := testutils.Execute(cmd, "get", "-x", "mux", "fiber")
-
-		assert.Contains(t, actual, "go: added github.com/gorilla/mux")
-		assert.Contains(t, actual, "go: added github.com/gofiber/fiber/v2")
-		testutils.GoModTidy(t)
-	})
-
-	t.Run("Errors if multiple items do not exist", func(t *testing.T) {
-		db, _ := testutils.InMemDb(t)
-
-		cmd := NewRootCmd(db)
-		actual := testutils.Execute(cmd, "get", "mux", "fiber")
-
-		assert.Equal(t, "no match found with the given arguement mux\nno match found with the given arguement fiber\n", actual)
-	})
-
-	t.Run("Errors if multiple items do not exist with -u flag", func(t *testing.T) {
-		db, _ := testutils.InMemDb(t)
-
-		cmd := NewRootCmd(db)
-		actual := testutils.Execute(cmd, "get", "mux", "-u", "fiber")
-
-		assert.Equal(t, "no match found with the given arguement mux\nno match found with the given arguement fiber\n", actual)
-	})
-
-	t.Run("Errors if multiple items do not exist with -t flag", func(t *testing.T) {
-		db, _ := testutils.InMemDb(t)
-
-		cmd := NewRootCmd(db)
-		actual := testutils.Execute(cmd, "get", "mux", "-t", "fiber")
-
-		assert.Equal(t, "no match found with the given arguement mux\nno match found with the given arguement fiber\n", actual)
-	})
-
-	t.Run("Errors if multiple items do not exist with -x flag", func(t *testing.T) {
-		db, _ := testutils.InMemDb(t)
-
-		cmd := NewRootCmd(db)
-		actual := testutils.Execute(cmd, "get", "mux", "-x", "fiber")
-
-		assert.Equal(t, "no match found with the given arguement mux\nno match found with the given arguement fiber\n", actual)
-	})
+	}
 }
 
 func TestGet(t *testing.T) {
@@ -303,10 +219,22 @@ func TestGet(t *testing.T) {
 		name string
 		args []string
 	}{
-		{"Can get item", []string{"get", "github.com/gorilla/mux"}},
-		{"Can get item with -u flag", []string{"get", "-u", "github.com/gorilla/mux"}},
-		{"Can get item with -t flag", []string{"get", "-t", "github.com/gorilla/mux"}},
-		{"Can get item with -x flag", []string{"get", "-x", "github.com/gorilla/mux"}},
+		{
+			name: "Can get item",
+			args: []string{"get", "github.com/gorilla/mux"},
+		},
+		{
+			name: "Can get item with -u flag",
+			args: []string{"get", "-u", "github.com/gorilla/mux"},
+		},
+		{
+			name: "Can get item with -t flag",
+			args: []string{"get", "-t", "github.com/gorilla/mux"},
+		},
+		{
+			name: "Can get item with -x flag",
+			args: []string{"get", "-x", "github.com/gorilla/mux"},
+		},
 	}
 
 	for _, tc := range tests {
@@ -336,10 +264,22 @@ func TestMultipleGet(t *testing.T) {
 		name string
 		args []string
 	}{
-		{"Can get items", []string{"get", "github.com/gorilla/mux", "github.com/gofiber/fiber/v2"}},
-		{"Can get items with -u flag", []string{"get", "-u", "github.com/gorilla/mux", "github.com/gofiber/fiber/v2"}},
-		{"Can get items with -t flag", []string{"get", "-t", "github.com/gorilla/mux", "github.com/gofiber/fiber/v2"}},
-		{"Can get items with -x flag", []string{"get", "-x", "github.com/gorilla/mux", "github.com/gofiber/fiber/v2"}},
+		{
+			name: "Can get items",
+			args: []string{"get", "github.com/gorilla/mux", "github.com/gofiber/fiber/v2"},
+		},
+		{
+			name: "Can get items with -u flag",
+			args: []string{"get", "-u", "github.com/gorilla/mux", "github.com/gofiber/fiber/v2"},
+		},
+		{
+			name: "Can get items with -t flag",
+			args: []string{"get", "-t", "github.com/gorilla/mux", "github.com/gofiber/fiber/v2"},
+		},
+		{
+			name: "Can get items with -x flag",
+			args: []string{"get", "-x", "github.com/gorilla/mux", "github.com/gofiber/fiber/v2"},
+		},
 	}
 
 	for _, tc := range tests {
