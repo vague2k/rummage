@@ -10,7 +10,7 @@ import (
 func NewRootCmd(db *database.Queries) *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:     "rummage [command]",
-		Version: "v3.2.2",
+		Version: "v3.3.0",
 		Short:   "A smart wrapper around 'go get'",
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := cmd.Help(); err != nil {

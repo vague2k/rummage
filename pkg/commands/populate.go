@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/vague2k/rummage/pkg/database"
@@ -16,6 +17,21 @@ func cut(s string) string {
 	_, after, _ := strings.Cut(s, "mod/")
 	pkg, _, _ := strings.Cut(after, "@")
 	return pkg
+}
+
+func capitalize(author string) string {
+	var result []rune
+	i := 0
+	for i < len(author) {
+		if author[i] == '!' && i+1 < len(author) {
+			result = append(result, rune(author[i+1]-32)) // convert to uppercase
+			i += 2
+		} else {
+			result = append(result, rune(author[i]))
+			i++
+		}
+	}
+	return string(result)
 }
 
 // Walks a dir and extracts packages valid as args in a "go get" command.
@@ -41,7 +57,9 @@ func extractPackages(dir string) ([]string, error) {
 		}
 		seen[curr] = true
 
-		pkgs = append(pkgs, curr)
+		normalized := capitalize(curr)
+
+		pkgs = append(pkgs, normalized)
 
 		return nil
 	})
@@ -65,7 +83,9 @@ func Populate(cmd *cobra.Command, args []string, db *database.Queries, ctx conte
 	amtAdded := 0
 	for _, entry := range pkgs {
 		_, err := db.AddItem(ctx, database.AddItemParams{
-			Entry: entry,
+			Entry:        entry,
+			Score:        1.0,
+			Lastaccessed: time.Now().Unix(),
 		})
 		if err != nil {
 			cmd.PrintErr(err)
