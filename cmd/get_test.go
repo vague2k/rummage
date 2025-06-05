@@ -53,7 +53,7 @@ func TestGetHighestScore(t *testing.T) {
 					Entry: entry,
 				})
 				assert.NoError(t, err)
-				db.UpdateItem(ctx, database.UpdateItemParams{
+				err = db.UpdateItem(ctx, database.UpdateItemParams{
 					Entry: "github.com/charmbracelet/bubbletea",
 					Score: 5.0,
 				})
